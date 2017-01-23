@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>index.js - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="nav">
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Interval.html">Interval</a><ul class='methods'><li data-type='method'><a href="Interval.html#isRunning">isRunning</a></li><li data-type='method'><a href="Interval.html#start">start</a></li><li data-type='method'><a href="Interval.html#stop">stop</a></li></ul></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">index.js</h1>
+    
+
+    <!--container.tmpl-->
+
+
+
+
+    <!--source.tmpl-->
+
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import Symbol from 'es6-symbol';
+import isNil from 'is-nil';
+import isFunction from 'is-function';
+
+const ERR_START = 'Interval is already running';
+const ERR_STOP = 'Interval is already stoped';
+const ERR_FUNC_TYPE = '"func" must be a function';
+const ERR_ONERROR_TYPE = '"onError" must be a function';
+const ERR_TIME_TYPE = '"time" must be a number';
+const FIELDS = {
+    func: Symbol('func'),
+    time: Symbol('time'),
+    onError: Symbol('onError'),
+    handler: Symbol('handler'),
+    isRunning: Symbol('isRunning')
+};
+
+function isNumber(i) {
+    return typeof i === 'number' &amp;&amp; !isNaN(i);
+}
+
+function requires(name, value) {
+    if (isNil(value)) {
+        throw new Error(`"${name}" is required`);
+    }
+}
+
+function assert(msg, value) {
+    if (value === false) {
+        throw new Error(msg);
+    }
+}
+
+function isRunning(instance) {
+    return instance &amp;&amp; instance[FIELDS.isRunning];
+}
+
+function nextTick(instance) {
+    if (isRunning(instance)) {
+        setTimeout(instance[FIELDS.handler], instance[FIELDS.time]);
+    }
+}
+
+function handleError(instance, err) {
+    if (!isRunning(instance)) {
+        // interval was stopped and handler is already disposed
+        throw err;
+    }
+
+    if (instance[FIELDS.onError]) {
+        if (instance[FIELDS.onError](err) === false) {
+            instance.stop();
+            return;
+        }
+
+        nextTick(instance);
+    } else {
+        instance.stop();
+
+        throw err;
+    }
+}
+
+function createHandler(that) {
+    let instance = that;
+
+    const handler = function handler() {
+        if (!isRunning(instance)) {
+            return;
+        }
+
+        const func = instance[FIELDS.func];
+        const isAsync = instance[FIELDS.func].length > 0;
+
+        try {
+            if (!isAsync) {
+                func.call(null);
+                nextTick(instance);
+                return;
+            }
+
+            func.call(null, (e) => {
+                if (e) {
+                    return handleError(instance, e);
+                }
+
+                return nextTick(instance);
+            });
+        } catch (e) {
+            handleError(instance, e);
+        }
+    };
+
+    handler.dispose = function disposeInterval() {
+        instance = null;
+    };
+
+    return handler;
+}
+
+class Interval {
+    /**
+     * Creates an Interval class instance.
+     * @param {Object} params - Interval parameters
+     * @param {Function} params.func - Function to execute
+     * @param {Number} params.time - Interval time
+     * @param {Function} [params.onError] - Custom error handler
+     */
+    constructor(params) {
+        requires('parameters', params);
+        requires('parameters.func', params.func);
+        requires('parameters.time', params.time);
+        assert(ERR_FUNC_TYPE, isFunction(params.func));
+        assert(ERR_TIME_TYPE, isNumber(params.time));
+
+        if (params.onError) {
+            assert(ERR_ONERROR_TYPE, isFunction(params.onError));
+        }
+
+        this[FIELDS.func] = params.func;
+        this[FIELDS.time] = params.time;
+        this[FIELDS.onError] = params.onError;
+        this[FIELDS.handler] = null;
+        this[FIELDS.isRunning] = false;
+    }
+
+    /**
+     * Returns value that defines whether the instance is running.
+     * @return {Boolean} Value that defines whether the instance is running.
+     */
+    isRunning() {
+        return this[FIELDS.isRunning];
+    }
+
+    /**
+     * Starts the instance.
+     * @throws {Error} Throws an error if the instance is already running.
+     * @return {Interval} Current instance.
+     */
+    start() {
+        assert(ERR_START, !this.isRunning());
+
+        this[FIELDS.isRunning] = true;
+        this[FIELDS.handler] = createHandler(this);
+
+        nextTick(this);
+
+        return this;
+    }
+
+    /**
+     * Stops the instance.
+     * @throws {Error} Throws an error if the instance is already stopped.
+     * @return {Interval} Current instance.
+     */
+    stop() {
+        assert(ERR_STOP, this.isRunning());
+
+        this[FIELDS.isRunning] = false;
+
+        this[FIELDS.handler].dispose();
+        this[FIELDS.handler] = null;
+
+        return this;
+    }
+}
+
+module.exports = function create(params) {
+    return new Interval(params);
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Mon Jan 23 2017 16:04:40 GMT-0500 (EST) using the LOKE theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
