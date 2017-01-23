@@ -1,0 +1,52 @@
+{
+  "name": "pinterval",
+  "version": "1.0.0",
+  "description": "Advanced interval",
+  "main": "lib/index.js",
+  "scripts": {
+    "lint": "echo eslint -c ./.eslintrc.json src",
+    "test": "npm run lint && mocha --reporter spec --compilers js:babel-register --recursive test",
+    "cover": "istanbul cover _mocha -- --compilers js:babel-register --recursive",
+    "coveralls": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js  && rm -rf ./coverage",
+    "clean": "rimraf lib",
+    "build": "npm run test && npm run clean && babel src --out-dir lib",
+    "prepublish": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ziflex/pinterval.git"
+  },
+  "keywords": [
+    "interval",
+    "setInterval"
+  ],
+  "author": "Tim Voronov <ziflex@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ziflex/pinterval/issues"
+  },
+  "homepage": "https://github.com/ziflex/pinterval#readme",
+  "devDependencies": {
+    "babel-cli": "^6.22.2",
+    "babel-eslint": "^7.1.1",
+    "babel-preset-es2015": "^6.22.0",
+    "babel-preset-es2016": "^6.22.0",
+    "babel-register": "^6.22.0",
+    "chai": "^3.5.0",
+    "coveralls": "^2.11.15",
+    "eslint": "^3.14.0",
+    "eslint-config-airbnb": "^14.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^3.0.2",
+    "eslint-plugin-mocha": "^4.8.0",
+    "istanbul": "1.0.0-alpha.2",
+    "mocha": "^3.2.0",
+    "rimraf": "^2.5.4",
+    "sinon": "^1.17.7"
+  },
+  "dependencies": {
+    "es6-symbol": "^3.1.0",
+    "is-function": "^1.0.1",
+    "is-nil": "^1.0.1"
+  }
+}
