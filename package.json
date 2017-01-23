@@ -4,7 +4,9 @@
   "description": "Advanced interval",
   "main": "lib/index.js",
   "scripts": {
-    "lint": "echo eslint -c ./.eslintrc.json src",
+    "doc": "jsdoc src -c jsdoc.json -r -d docs -R README.md",
+    "gh-pages": "git subtree push --prefix docs origin gh-pages",
+    "lint": "eslint -c ./.eslintrc.json src",
     "test": "npm run lint && mocha --reporter spec --compilers js:babel-register --recursive test",
     "cover": "istanbul cover _mocha -- --compilers js:babel-register --recursive",
     "coveralls": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js  && rm -rf ./coverage",
@@ -40,6 +42,8 @@
     "eslint-plugin-jsx-a11y": "^3.0.2",
     "eslint-plugin-mocha": "^4.8.0",
     "istanbul": "1.0.0-alpha.2",
+    "jsdoc": "^3.4.3",
+    "loke-jsdoc-theme": "^2.1.0",
     "mocha": "^3.2.0",
     "rimraf": "^2.5.4",
     "sinon": "^1.17.7"
