@@ -7,8 +7,8 @@
     "gh-pages": "git subtree push --prefix docs origin gh-pages",
     "clean": "rimraf lib",
     "build": "cross-env NODE_ENV=production npm run clean && tsc -b tsconfig.json",
-    "test": "rimraf coverage && cross-env NODE_ENV=test nyc mocha",
-    "coveralls": "npm test && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
+    "test": "cross-env NODE_ENV=test nyc --reporter=html --reporter=text mocha",
+    "coverage": "cross-env NODE_ENV=test nyc report --reporter=text-lcov | coveralls",
     "doc": "rimraf docs && typedoc --excludeProtected --excludePrivate --out docs && touch docs/.nojekyll",
     "fmt": "pretty-quick"
   },
@@ -37,6 +37,7 @@
     "@types/node": "^12.7.0",
     "@types/sinon": "^7.0.13",
     "chai": "^4.2.0",
+    "coveralls": "^3.0.6",
     "cross-env": "^5.2.0",
     "husky": "^3.0.2",
     "mocha": "^6.2.0",
