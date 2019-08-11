@@ -36,71 +36,55 @@ describe('Interval', () => {
     });
 
     describe('.start', () => {
-        let clock: sinon.SinonFakeTimers;
-
-        beforeEach(() => {
-            clock = sinon.useFakeTimers();
-        });
-
-        afterEach(() => {
-            clock.restore();
-        });
-
-        it('should call handler on each tick', () => {
+        it('should call handler on each tick', async () => {
             const spy = sinon.spy();
-            const interval = new Interval({ func: spy, time: 1000 });
+            const interval = new Interval({ func: spy, time: 200 });
 
             interval.start();
 
-            clock.tick(1000);
+            await sleep(210);
 
             expect(spy.callCount).to.equal(1);
+
+            interval.stop();
         });
 
         context('When called more then once', () => {
             it('should throw an error', () => {
-                const interval = new Interval({ func: sinon.spy(), time: 1000 });
+                const interval = new Interval({ func: sinon.spy(), time: 200 });
 
                 interval.start();
 
                 expect(() => {
                     interval.start();
                 }).to.throw(Error);
+
+                interval.stop();
             });
         });
     });
 
     describe('.stop', () => {
-        let clock: sinon.SinonFakeTimers;
-
-        beforeEach(() => {
-            clock = sinon.useFakeTimers();
-        });
-
-        afterEach(() => {
-            clock.restore();
-        });
-
-        it('should stop calling handler on each tick', () => {
+        it('should stop calling handler on each tick', async () => {
             const spy = sinon.spy();
-            const interval = new Interval({ func: spy, time: 1000 });
+            const interval = new Interval({ func: spy, time: 200 });
 
             interval.start();
 
-            clock.tick(1000);
+            await sleep(230);
 
             expect(spy.callCount).to.equal(1);
 
             interval.stop();
 
-            clock.tick(1200);
+            await sleep(230);
 
             expect(spy.callCount).to.equal(1);
         });
 
         context('When called more then once', () => {
             it('should throw an error', () => {
-                const interval = new Interval({ func: sinon.spy(), time: 1000 });
+                const interval = new Interval({ func: sinon.spy(), time: 200 });
 
                 expect(() => {
                     interval.stop();
@@ -119,7 +103,7 @@ describe('Interval', () => {
     describe('.isRunning', () => {
         context('When is stopped', () => {
             it('should return "false"', () => {
-                const interval = new Interval({ func: sinon.spy(), time: 1000 });
+                const interval = new Interval({ func: sinon.spy(), time: 200 });
 
                 expect(interval.isRunning).to.be.false;
             });
@@ -127,7 +111,7 @@ describe('Interval', () => {
 
         context('When is running', () => {
             it('should return "true"', () => {
-                const interval = new Interval({ func: sinon.spy(), time: 1000 });
+                const interval = new Interval({ func: sinon.spy(), time: 200 });
 
                 interval.start();
 
@@ -160,17 +144,19 @@ describe('Interval', () => {
 
             await sleep(1100);
             expect(spy.callCount, 'callCount').to.eql(1);
+
+            interval.stop();
         });
     });
 
     describe('Error handling', () => {
         context('When error handler is not provided', () => {
             it('should catch an error and stop', async () => {
-                const interval = new Interval({ func: sinon.stub().throws(), time: 500 });
+                const interval = new Interval({ func: sinon.stub().throws(), time: 200 });
 
                 interval.start();
 
-                await sleep(600);
+                await sleep(230);
 
                 expect(interval.isRunning, 'isRunning').to.be.false;
             });
@@ -183,11 +169,11 @@ describe('Interval', () => {
                         throw new Error('Test')
                     },
                     onError: () => false,
-                    time: 1000
+                    time: 200
                 });
 
                 interval.start();
-                await sleep(1010);
+                await sleep(220);
                 expect(interval.isRunning, 'isRunning').to.be.false;
             });
         });
@@ -199,14 +185,16 @@ describe('Interval', () => {
                     onError: () => {
                         return true;
                     },
-                    time: 500
+                    time: 200
                 });
 
                 interval.start();
 
-                await sleep(600);
+                await sleep(300);
 
                 expect(interval.isRunning, 'isRunning').to.be.true;
+
+                interval.stop();
             });
         });
 
@@ -222,12 +210,12 @@ describe('Interval', () => {
                     };
                     const interval = new Interval({
                         func: fn,
-                        time: 1000
+                        time: 200
                     });
 
                     interval.start();
 
-                    await sleep(1020);
+                    await sleep(230);
 
                     expect(interval.isRunning, 'isRunning').to.be.false;
                 });
@@ -245,12 +233,12 @@ describe('Interval', () => {
                     const interval = new Interval({
                         func: fn,
                         onError: sinon.stub().returns(false),
-                        time: 1000
+                        time: 200
                     });
 
                     interval.start();
 
-                    await sleep(1050);
+                    await sleep(230);
 
                     expect(interval.isRunning, 'isRunning').to.be.false;
                 });
@@ -259,7 +247,7 @@ describe('Interval', () => {
             context('When error handler is provided and returns "true"', () => {
                 it('should catch an error and continue', async () => {
                     const fn = () => {
-                        return new Promise((resolve, reject) => {
+                        return new Promise((_, reject) => {
                             setTimeout(() => {
                                 reject(new Error('Async error'));
                             });
@@ -268,14 +256,16 @@ describe('Interval', () => {
                     const interval = new Interval({
                         func: fn,
                         onError: () => true,
-                        time: 500
+                        time: 200
                     });
 
                     interval.start();
 
-                    await sleep(600);
+                    await sleep(230);
 
                     expect(interval.isRunning, 'isRunning').to.be.true;
+
+                    interval.stop();
                 });
             });
         });

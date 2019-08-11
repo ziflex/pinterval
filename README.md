@@ -1,6 +1,6 @@
 # pinterval
 
-> Advanced interval
+> Advanced setInterval
 
 [![npm version](https://badge.fury.io/js/pinterval.svg)](https://www.npmjs.com/package/pinterval)
 [![Build Status](https://secure.travis-ci.org/ziflex/pinterval.svg?branch=master)](http://travis-ci.org/ziflex/pinterval)
@@ -9,6 +9,9 @@
 ````sh
     npm install --save pinterval
 ````
+
+## Motivation
+``pinterval`` is a small tool that provides an advance mechanism for running an arbitrary code in intervals with flexible and simple API. It's a good fit for small badckground tasks. It supports both sync and async execution of a given function.
 
 ## API
 You can find API [here](http://ziflex.github.io/pinterval)
