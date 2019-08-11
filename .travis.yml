@@ -3,7 +3,7 @@ script:
   - npm run test
   - npm run coverage
 node_js:
-  - "stable"
+  - "10"
 branches:
   only:
     - master
