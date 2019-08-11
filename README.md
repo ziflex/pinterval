@@ -39,7 +39,7 @@ interval.start();
 
 ### Error handling
 
-```javascript
+```typescript
 
 import { Interval } from 'pinterval';
 
@@ -64,11 +64,11 @@ interval.start();
 In order to pass async function, it must return a promise on each tick.
 Each tick is calcualated after async function completion in order to avoid race conditions.
 
-```javascript
+```typescript
 
-import Interval from 'pinterval';
+import { Interval } from 'pinterval';
 
-const interval = Interval({
+const interval = new Interval({
     func: () => {
         return fetch('https://github.com/trending')
     },
@@ -81,11 +81,11 @@ interval.start();
 
 Additionally, error handler can be asynchronous too:
 
-```javascript
+```typescript
 
-import Interval from 'pinterval';
+import { Interval } from 'pinterval';
 
-const interval = Interval({
+const interval = new Interval({
     func: () => {
         return fetch('https://github.com/trending')
     },
