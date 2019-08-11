@@ -68,12 +68,16 @@
 					<h1>pinterval</h1>
 				</a>
 				<blockquote>
-					<p>Advanced interval</p>
+					<p>Advanced setInterval</p>
 				</blockquote>
 				<p><a href="https://www.npmjs.com/package/pinterval"><img src="https://badge.fury.io/js/pinterval.svg" alt="npm version"></a>
 					<a href="http://travis-ci.org/ziflex/pinterval"><img src="https://secure.travis-ci.org/ziflex/pinterval.svg?branch=master" alt="Build Status"></a>
 				<a href="https://coveralls.io/github/ziflex/pinterval"><img src="https://coveralls.io/repos/github/ziflex/pinterval/badge.svg?branch=master" alt="Coverage Status"></a></p>
 				<pre><code class="language-sh">    npm install --save pinterval</code></pre>
+				<a href="#motivation" id="motivation" style="color: inherit; text-decoration: none;">
+					<h2>Motivation</h2>
+				</a>
+				<p><code>pinterval</code> is a small tool that provides an advance mechanism for running an arbitrary code in intervals with flexible and simple API. It&#39;s a good fit for small badckground tasks. It supports both sync and async execution of a given function.</p>
 				<a href="#api" id="api" style="color: inherit; text-decoration: none;">
 					<h2>API</h2>
 				</a>
@@ -92,9 +96,9 @@
 					<h3>Basic</h3>
 				</a>
 				<pre><code class="language-javascript">
-<span class="hljs-keyword">import</span> Interval <span class="hljs-keyword">from</span> <span class="hljs-string">'pinterval'</span>;
+<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">'pinterval'</span>;
 
-<span class="hljs-keyword">const</span> interval = Interval({
+<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
     <span class="hljs-attr">func</span>: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Tick!'</span>),
     <span class="hljs-attr">time</span>: <span class="hljs-number">1000</span>
 });
@@ -104,13 +108,13 @@ interval.start();
 				<a href="#error-handling" id="error-handling" style="color: inherit; text-decoration: none;">
 					<h3>Error handling</h3>
 				</a>
-				<pre><code class="language-javascript">
-<span class="hljs-keyword">import</span> Interval <span class="hljs-keyword">from</span> <span class="hljs-string">'pinterval'</span>;
+				<pre><code class="language-typescript">
+<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">'pinterval'</span>;
 
-<span class="hljs-keyword">const</span> interval = Interval({
-    <span class="hljs-attr">func</span>: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Tick!'</span>),
-    <span class="hljs-attr">time</span>: <span class="hljs-number">1000</span>,
-    <span class="hljs-attr">onError</span>: <span class="hljs-function">(<span class="hljs-params">err</span>) =&gt;</span> {
+<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
+    func: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Tick!'</span>),
+    time: <span class="hljs-number">1000</span>,
+    onError: <span class="hljs-function">(<span class="hljs-params">err</span>) =&gt;</span> {
         <span class="hljs-keyword">if</span> (err <span class="hljs-keyword">instanceof</span> FatalError) {
             <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>; <span class="hljs-comment">// stop interval and terminate all further execution</span>
         }
@@ -124,16 +128,37 @@ interval.start();
 				<a href="#async" id="async" style="color: inherit; text-decoration: none;">
 					<h3>Async</h3>
 				</a>
-				<p>In order to pass async function, it has to accept callback function which will be passed on each tick.
+				<p>In order to pass async function, it must return a promise on each tick.
 				Each tick is calcualated after async function completion in order to avoid race conditions.</p>
-				<pre><code class="language-javascript">
-<span class="hljs-keyword">import</span> Interval <span class="hljs-keyword">from</span> <span class="hljs-string">'pinterval'</span>;
+				<pre><code class="language-typescript">
+<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">'pinterval'</span>;
 
-<span class="hljs-keyword">const</span> interval = Interval({
-    <span class="hljs-attr">func</span>: <span class="hljs-function">(<span class="hljs-params">done</span>) =&gt;</span> {
-        someAsyncTask().then(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> done).catch(done)
+<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
+    func: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+        <span class="hljs-keyword">return</span> fetch(<span class="hljs-string">'https://github.com/trending'</span>)
     },
-    <span class="hljs-attr">time</span>: <span class="hljs-number">1000</span>
+    time: <span class="hljs-number">1000</span>
+});
+
+interval.start();
+</code></pre>
+				<p>Additionally, error handler can be asynchronous too:</p>
+				<pre><code class="language-typescript">
+<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">'pinterval'</span>;
+
+<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
+    func: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+        <span class="hljs-keyword">return</span> fetch(<span class="hljs-string">'https://github.com/trending'</span>)
+    },
+    time: <span class="hljs-number">1000</span>,
+    onError: <span class="hljs-function">(<span class="hljs-params">err: <span class="hljs-built_in">Error</span></span>) =&gt;</span> {
+        <span class="hljs-keyword">return</span> fetch(<span class="hljs-string">'my-service'</span>, {
+            method: <span class="hljs-string">'POST'</span>,
+            body: <span class="hljs-built_in">JSON</span>.stringify({
+                timerError: err
+            })
+        })
+    }
 });
 
 interval.start();
