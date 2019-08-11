@@ -1,6 +1,6 @@
 # pinterval
 
-> Advanced interval
+> Advanced setInterval
 
 [![npm version](https://badge.fury.io/js/pinterval.svg)](https://www.npmjs.com/package/pinterval)
 [![Build Status](https://secure.travis-ci.org/ziflex/pinterval.svg?branch=master)](http://travis-ci.org/ziflex/pinterval)
@@ -9,6 +9,9 @@
 ````sh
     npm install --save pinterval
 ````
+
+## Motivation
+``pinterval`` is a small tool that provides an advance mechanism for running an arbitrary code in intervals with flexible and simple API. It's a good fit for small badckground tasks. It supports both sync and async execution of a given function.
 
 ## API
 You can find API [here](http://ziflex.github.io/pinterval)
@@ -23,9 +26,9 @@ You can find API [here](http://ziflex.github.io/pinterval)
 
 ```javascript
 
-import Interval from 'pinterval';
+import { Interval } from 'pinterval';
 
-const interval = Interval({
+const interval = new Interval({
     func: () => console.log('Tick!'),
     time: 1000
 });
@@ -38,9 +41,9 @@ interval.start();
 
 ```javascript
 
-import Interval from 'pinterval';
+import { Interval } from 'pinterval';
 
-const interval = Interval({
+const interval = new Interval({
     func: () => console.log('Tick!'),
     time: 1000,
     onError: (err) => {
@@ -58,7 +61,7 @@ interval.start();
 
 ### Async
 
-In order to pass async function, it has to accept callback function which will be passed on each tick.
+In order to pass async function, it must return a promise on each tick.
 Each tick is calcualated after async function completion in order to avoid race conditions.
 
 ```javascript
@@ -66,10 +69,35 @@ Each tick is calcualated after async function completion in order to avoid race 
 import Interval from 'pinterval';
 
 const interval = Interval({
-    func: (done) => {
-        someAsyncTask().then(() => done).catch(done)
+    func: () => {
+        return fetch('https://github.com/trending')
     },
     time: 1000
+});
+
+interval.start();
+
+```
+
+Additionally, error handler can be asynchronous too:
+
+```javascript
+
+import Interval from 'pinterval';
+
+const interval = Interval({
+    func: () => {
+        return fetch('https://github.com/trending')
+    },
+    time: 1000,
+    onError: (err: Error) => {
+        return fetch('my-service', {
+            method: 'POST',
+            body: JSON.stringify({
+                timerError: err
+            })
+        })
+    }
 });
 
 interval.start();
