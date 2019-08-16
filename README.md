@@ -3,7 +3,8 @@
 > Advanced setInterval
 
 [![npm version](https://badge.fury.io/js/pinterval.svg)](https://www.npmjs.com/package/pinterval)
-[![Build Status](https://secure.travis-ci.org/ziflex/pinterval.svg?branch=master)](http://travis-ci.org/ziflex/pinterval)
+[![Actions Status](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/badge/ziflex/pinterval)](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/results/ziflex/pinterval)
+
 
 ````sh
     npm install --save pinterval
