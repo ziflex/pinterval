@@ -3,7 +3,7 @@
 > Advanced setInterval
 
 [![npm version](https://badge.fury.io/js/pinterval.svg)](https://www.npmjs.com/package/pinterval)
-[![Actions Status](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/badge/ziflex/pinterval)](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/results/ziflex/pinterval)
+[![Actions Status](https://github.com/ziflex/pinterval/workflows/Node%20CI/badge.svg)](https://github.com/ziflex/pinterval/actions)
 
 
 ````sh
