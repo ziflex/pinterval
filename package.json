@@ -1,55 +1,58 @@
 {
-  "name": "pinterval",
-  "version": "2.0.1",
-  "description": "Advanced interval",
-  "main": "lib/index.js",
-  "scripts": {
-    "gh-pages": "git subtree push --prefix docs origin gh-pages",
-    "clean": "rimraf lib",
-    "build": "cross-env NODE_ENV=production npm run clean && tsc -b tsconfig.json",
-    "test": "cross-env NODE_ENV=test mocha",
-    "doc": "rimraf docs && typedoc --excludeProtected --excludePrivate --out docs && touch docs/.nojekyll",
-    "fmt": "pretty-quick"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ziflex/pinterval.git"
-  },
-  "keywords": [
-    "interval",
-    "setInterval"
-  ],
-  "author": "Tim Voronov <ziflex@gmail.com>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/ziflex/pinterval/issues"
-  },
-  "homepage": "https://github.com/ziflex/pinterval#readme",
-  "dependencies": {
-    "is-function": "^1.0.1",
-    "is-promise": "^2.1.0"
-  },
-  "devDependencies": {
-    "@types/chai": "^4.2.7",
-    "@types/mocha": "^5.2.7",
-    "@types/nanoid": "^2.1.0",
-    "@types/node": "^13.1.1",
-    "@types/sinon": "^7.5.1",
-    "chai": "^4.2.0",
-    "cross-env": "^6.0.3",
-    "husky": "^3.1.0",
-    "mocha": "^6.2.2",
-    "mocha-lcov-reporter": "^1.3.0",
-    "prettier": "^1.19.1",
-    "pretty-quick": "^2.0.1",
-    "rimraf": "^3.0.0",
-    "sinon": "^8.0.2",
-    "source-map-support": "^0.5.16",
-    "ts-node": "^8.5.4",
-    "tslint": "^5.20.1",
-    "tslint-config-airbnb": "^5.11.2",
-    "tslint-config-prettier": "^1.18.0",
-    "typedoc": "^0.15.6",
-    "typescript": "^3.7.4"
-  }
+    "name": "pinterval",
+    "version": "2.0.1",
+    "description": "Advanced interval",
+    "main": "lib/index.js",
+    "scripts": {
+        "gh-pages": "git subtree push --prefix docs origin gh-pages",
+        "clean": "rimraf lib",
+        "build": "cross-env NODE_ENV=production npm run clean && tsc -b tsconfig.json",
+        "test": "cross-env NODE_ENV=test mocha",
+        "doc": "rimraf docs && typedoc --excludeProtected --excludePrivate --out docs && touch docs/.nojekyll",
+        "fmt": "pretty-quick"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ziflex/pinterval.git"
+    },
+    "keywords": [
+        "interval",
+        "setInterval"
+    ],
+    "author": "Tim Voronov <ziflex@gmail.com>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/ziflex/pinterval/issues"
+    },
+    "homepage": "https://github.com/ziflex/pinterval#readme",
+    "dependencies": {
+        "is-function": "^1.0.2",
+        "is-promise": "^4.0.0"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.2.11",
+        "@types/mocha": "^7.0.2",
+        "@types/node": "^14.0.14",
+        "@types/sinon": "^9.0.4",
+        "@typescript-eslint/eslint-plugin": "^3.4.0",
+        "@typescript-eslint/parser": "^3.4.0",
+        "chai": "^4.2.0",
+        "cross-env": "^7.0.2",
+        "eslint": "^7.3.1",
+        "eslint-config-prettier": "^6.11.0",
+        "eslint-plugin-import": "^2.21.2",
+        "eslint-plugin-prettier": "^3.1.4",
+        "husky": "^4.2.5",
+        "mocha": "^8.0.1",
+        "mocha-lcov-reporter": "^1.3.0",
+        "nyc": "^15.1.0",
+        "prettier": "^2.0.5",
+        "pretty-quick": "^2.0.1",
+        "rimraf": "^3.0.2",
+        "sinon": "^9.0.2",
+        "source-map-support": "^0.5.19",
+        "ts-node": "^8.10.2",
+        "typedoc": "^0.17.7",
+        "typescript": "^3.9.5"
+    }
 }

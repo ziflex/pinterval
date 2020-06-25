@@ -1,4 +1,3 @@
-
 import isFunction from 'is-function';
 import isPromise from 'is-promise';
 
@@ -124,13 +123,15 @@ export class Interval {
                 return;
             }
 
-            (out as Promise<void>).then(() => {
-                this.__nextTick();
-            }).catch((err) => {
-                this.__handleError(err);
+            (out as Promise<void>)
+                .then(() => {
+                    this.__nextTick();
+                })
+                .catch((err) => {
+                    this.__handleError(err);
 
-                return null;
-            });
+                    return null;
+                });
         } catch (e) {
             this.__handleError(e);
         }
@@ -160,16 +161,18 @@ export class Interval {
             return;
         }
 
-        (out as Promise<boolean>).then((res: boolean) => {
-            if (res === true) {
-                this.__nextTick();
-            } else {
+        (out as Promise<boolean>)
+            .then((res: boolean) => {
+                if (res === true) {
+                    this.__nextTick();
+                } else {
+                    this.stop();
+                }
+            })
+            .catch(() => {
                 this.stop();
-            }
-        }).catch(() => {
-            this.stop();
 
-            return null;
-        });
+                return null;
+            });
     }
 }
