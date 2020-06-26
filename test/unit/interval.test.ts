@@ -5,7 +5,7 @@ import { Interval } from '../../src/index';
 async function sleep(time: number): Promise<void> {
     return new Promise((resolve) => {
         setTimeout(resolve, time);
-    })
+    });
 }
 
 describe('Interval', () => {
@@ -17,7 +17,7 @@ describe('Interval', () => {
                 }).to.throw(Error);
 
                 expect(() => {
-                    return new Interval(({} as any));
+                    return new Interval({} as any);
                 }).to.throw(Error);
 
                 expect(() => {
@@ -122,22 +122,44 @@ describe('Interval', () => {
                 expect(interval.isRunning).to.be.false;
             });
         });
+
+        describe('When returned "false"', () => {
+            it('should get stopped', async () => {
+                const spy = sinon.spy();
+
+                const interval = new Interval({
+                    func: () => {
+                        spy();
+
+                        return spy.callCount < 5;
+                    },
+                    time: 100,
+                });
+
+                interval.start();
+
+                await sleep(1000);
+
+                expect(spy.callCount).to.eq(5);
+                expect(interval.isRunning).to.be.false;
+            });
+        });
     });
 
     describe('Async execution', () => {
         it('should wait for an end of async execution before next tick', async () => {
             const spy = sinon.spy();
-            const fn = () => {
+            const fn: any = () => {
                 return new Promise((resolve) => {
                     setTimeout(() => {
                         spy();
                         resolve();
-                    }, 500)
-                })
+                    }, 500);
+                });
             };
             const interval = new Interval({
                 func: fn,
-                time: 500
+                time: 500,
             });
 
             interval.start();
@@ -166,10 +188,10 @@ describe('Interval', () => {
             it('should catch an error and stop', async () => {
                 const interval = new Interval({
                     func: () => {
-                        throw new Error('Test')
+                        throw new Error('Test');
                     },
                     onError: () => false,
-                    time: 200
+                    time: 200,
                 });
 
                 interval.start();
@@ -185,7 +207,7 @@ describe('Interval', () => {
                     onError: () => {
                         return true;
                     },
-                    time: 200
+                    time: 200,
                 });
 
                 interval.start();
@@ -201,16 +223,16 @@ describe('Interval', () => {
         context('When async', () => {
             context('When error handler is not provided', () => {
                 it('should catch an error and stop', async () => {
-                    const fn = () => {
+                    const fn: any = () => {
                         return new Promise((resolve, reject) => {
                             setTimeout(() => {
                                 reject(new Error('Async error'));
                             }, 10);
-                        })
+                        });
                     };
                     const interval = new Interval({
                         func: fn,
-                        time: 200
+                        time: 200,
                     });
 
                     interval.start();
@@ -223,17 +245,17 @@ describe('Interval', () => {
 
             context('When error handler is provided and returns "false"', () => {
                 it('should catch an error and stop', async () => {
-                    const fn = () => {
+                    const fn: any = () => {
                         return new Promise((resolve, reject) => {
                             setTimeout(() => {
                                 reject(new Error('Async error'));
                             });
-                        })
+                        });
                     };
                     const interval = new Interval({
                         func: fn,
                         onError: sinon.stub().returns(false),
-                        time: 200
+                        time: 200,
                     });
 
                     interval.start();
@@ -246,17 +268,17 @@ describe('Interval', () => {
 
             context('When error handler is provided and returns "true"', () => {
                 it('should catch an error and continue', async () => {
-                    const fn = () => {
+                    const fn: any = () => {
                         return new Promise((_, reject) => {
                             setTimeout(() => {
                                 reject(new Error('Async error'));
                             });
-                        })
+                        });
                     };
                     const interval = new Interval({
                         func: fn,
                         onError: () => true,
-                        time: 200
+                        time: 200,
                     });
 
                     interval.start();

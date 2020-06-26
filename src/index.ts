@@ -8,10 +8,10 @@ const ERR_FUNC_TYPE = '"func" must be a function';
 const ERR_ONERROR_TYPE = '"onError" must be a function';
 const ERR_TIME_TYPE = '"time" must be a number';
 
-export type IntervalFunction = () => void;
-export type AsyncIntervalFunction = () => Promise<void>;
-export type ErrorHandler = (err: Error) => boolean;
-export type AsyncErrorHandler = (err: Error) => Promise<boolean>;
+export type IntervalFunction = () => boolean | undefined;
+export type AsyncIntervalFunction = () => Promise<boolean | undefined>;
+export type ErrorHandler = (err: Error) => boolean | undefined;
+export type AsyncErrorHandler = (err: Error) => Promise<boolean | undefined>;
 
 /**
  * Interval parameters
@@ -118,14 +118,26 @@ export class Interval {
             const out = func();
 
             if (!isPromise(out)) {
-                this.__nextTick();
+                if (out !== false) {
+                    this.__nextTick();
+
+                    return;
+                }
+
+                this.stop();
 
                 return;
             }
 
-            (out as Promise<void>)
-                .then(() => {
-                    this.__nextTick();
+            (out as Promise<boolean | undefined>)
+                .then((result: boolean | undefined) => {
+                    if (result !== false) {
+                        this.__nextTick();
+
+                        return;
+                    }
+
+                    this.stop();
                 })
                 .catch((err) => {
                     this.__handleError(err);
