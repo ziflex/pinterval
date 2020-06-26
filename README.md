@@ -37,6 +37,30 @@ interval.start();
 
 ```
 
+### Auto stop
+
+If ``func`` returns ``false``, the interval automatically stops.
+The following interval will stop after 10 calls.
+
+```javascript
+
+import { Interval } from 'pinterval';
+import sinon from 'sinon';
+
+const spy = sinon.spy();
+const interval = new Interval({
+    func: () => {
+        spy();
+
+        return spy.calledCount < 10;
+    },
+    time: 1000
+});
+
+interval.start();
+
+```
+
 ### Error handling
 
 ```typescript
@@ -101,5 +125,37 @@ const interval = new Interval({
 });
 
 interval.start();
+
+```
+
+### Helpers
+
+#### Polling
+
+``poll`` implements a simple polling mechanism.
+
+```typescript
+
+import { poll } from 'pinterval';
+
+await poll(async () => {
+    const result = await someProgress();
+
+    return result === true;
+}, 5000);
+
+```
+
+#### Times
+
+``times`` executes a given function a specific amount of times.
+
+```typescript
+
+import { times } from 'pinterval';
+
+await times(async (counter) => {
+    await updateSomething(counter);
+}, 5, 1000);
 
 ```

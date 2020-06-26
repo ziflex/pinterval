@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 3.1.0
+### Added
+- Possibility to stop Interval when a function returns "false"
+- ``poll``, ``times`` and ``sleep`` helper functions.
+
+## 3.0.0
+### Changed
+- Updated dependencies
+
 ## 2.0.1
 ### Changed
 - Updated dev dependencies
