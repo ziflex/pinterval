@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.2.0
+### Added
+- ``until`` helper function.
+### Changed
+- Updated dependencies
+
 ## 3.1.0
 ### Added
 - Possibility to stop Interval when a function returns "false"
