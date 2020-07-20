@@ -5,7 +5,7 @@ export type PollPredicateAsync = () => Promise<boolean>;
 
 /**
  * Implements polling mechanism using Interval.
- * @param predicate - Polling predicate. The polling stops when the predicate returns "true".
+ * @param predicate - Polling predicate. The polling stops when the predicate returns "false".
  * @param time - Polling intervals.
  */
 export function poll(predicate: PollPredicate | PollPredicateAsync, time: number): Promise<void> {
@@ -19,6 +19,38 @@ export function poll(predicate: PollPredicate | PollPredicateAsync, time: number
                     }
 
                     resolve();
+
+                    return false;
+                });
+            },
+            onError: reject,
+        });
+
+        interval.start();
+    });
+}
+
+export type UntilPredicate<T> = () => T;
+export type UntilPredicateAsync<T> = () => Promise<T>;
+
+/**
+ * Implements polling mechanism using Interval until data or null is returned.
+ * @param predicate - Polling predicate. The polling continues until the predicate returns anything but undefined.
+ * @param time - Polling intervals.
+ */
+export function until<T>(predicate: UntilPredicate<T> | UntilPredicateAsync<T>, time: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const interval = new Interval({
+            time,
+            func: () => {
+                return Promise.resolve(predicate()).then((out: T) => {
+                    // if result is not available, continue polling
+                    if (typeof out === 'undefined') {
+                        return true;
+                    }
+
+                    // when result finally is available, stop polling
+                    resolve(out);
 
                     return false;
                 });

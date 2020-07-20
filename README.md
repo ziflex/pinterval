@@ -146,6 +146,23 @@ await poll(async () => {
 
 ```
 
+#### Until
+
+``until`` is similar to ``poll`` but it gives you a possibility to return a value for a polling function.    
+The polling continues until the predicate returns anything but undefined.
+
+```typescript
+
+import { until } from 'pinterval';
+
+const data = await until(async () => {
+    const result = await someProgress();
+
+    return result.data;
+}, 5000);
+
+```
+
 #### Times
 
 ``times`` executes a given function a specific amount of times.

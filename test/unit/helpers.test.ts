@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { poll, times } from '../../src';
+import { poll, times, until } from '../../src';
 
 describe('Helpers', () => {
     describe('poll', () => {
@@ -14,6 +14,26 @@ describe('Helpers', () => {
                 }, 200);
 
                 expect(spy.callCount).to.eq(5);
+            });
+        });
+    });
+
+    describe('until', () => {
+        context('Until data is returned', () => {
+            it('should stop', async () => {
+                const spy = sinon.spy();
+                const data = await until(() => {
+                    spy();
+
+                    if (spy.callCount < 5) {
+                        return undefined;
+                    }
+
+                    return 'foo';
+                }, 200);
+
+                expect(spy.callCount).to.eq(5);
+                expect(data).to.eql('foo');
             });
         });
     });
