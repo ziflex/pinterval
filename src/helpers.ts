@@ -1,4 +1,4 @@
-import { Interval } from './interval';
+import { Interval, Duration } from './interval';
 
 export type PollPredicate = () => boolean;
 export type PollPredicateAsync = () => Promise<boolean>;
@@ -6,12 +6,12 @@ export type PollPredicateAsync = () => Promise<boolean>;
 /**
  * Implements polling mechanism using Interval.
  * @param predicate - Polling predicate. The polling stops when the predicate returns "false".
- * @param time - Polling intervals.
+ * @param timeout - Polling timeout duration.
  */
-export function poll(predicate: PollPredicate | PollPredicateAsync, time: number): Promise<void> {
+export function poll(predicate: PollPredicate | PollPredicateAsync, timeout: Duration): Promise<void> {
     return new Promise((resolve, reject) => {
         const interval = new Interval({
-            time,
+            time: timeout,
             func: () => {
                 return Promise.resolve(predicate()).then((out) => {
                     if (out === true) {
@@ -36,12 +36,12 @@ export type UntilPredicateAsync<T> = () => Promise<T>;
 /**
  * Implements polling mechanism using Interval until data or null is returned.
  * @param predicate - Polling predicate. The polling continues until the predicate returns anything but undefined.
- * @param time - Polling intervals.
+ * @param timeout - Polling timeout duration.
  */
-export function until<T>(predicate: UntilPredicate<T> | UntilPredicateAsync<T>, time: number): Promise<T> {
+export function until<T>(predicate: UntilPredicate<T> | UntilPredicateAsync<T>, timeout: Duration): Promise<T> {
     return new Promise<T>((resolve, reject) => {
         const interval = new Interval({
-            time,
+            time: timeout,
             func: () => {
                 return Promise.resolve(predicate()).then((out: T) => {
                     // if result is not available, continue polling
@@ -71,7 +71,11 @@ export type TimesPredicateAsync = (counter: number) => Promise<void>;
  * @param amoun - A number that indicates how many times to call a given function.
  * @param time - A number that indicates time in ms between calls.
  */
-export function times(predicate: TimesPredicate | TimesPredicateAsync, amount: number, time: number): Promise<void> {
+export function times(
+    predicate: TimesPredicate | TimesPredicateAsync,
+    amount: number,
+    timeout: Duration,
+): Promise<void> {
     if (amount < 0) {
         return Promise.resolve();
     }
@@ -79,7 +83,7 @@ export function times(predicate: TimesPredicate | TimesPredicateAsync, amount: n
     return new Promise((resolve, reject) => {
         let counter = -1;
         const interval = new Interval({
-            time,
+            time: timeout,
             func: () => {
                 counter++;
 

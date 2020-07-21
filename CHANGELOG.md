@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.3.0
+### Added
+- Support of dynamic interval duration by providing duration factory function.
+
 ## 3.2.0
 ### Added
 - ``until`` helper function.

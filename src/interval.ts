@@ -6,12 +6,14 @@ const ERR_STOP = 'Interval is already stoped';
 const ERR_MISSED_PARAMS = 'Parameters are required';
 const ERR_FUNC_TYPE = '"func" must be a function';
 const ERR_ONERROR_TYPE = '"onError" must be a function';
-const ERR_TIME_TYPE = '"time" must be a number';
+const ERR_TIME_TYPE = '"time" must be either a number or a function';
 
 export type IntervalFunction = () => boolean | void;
 export type AsyncIntervalFunction = () => Promise<boolean | void>;
 export type ErrorHandler = (err: Error) => boolean | void;
 export type AsyncErrorHandler = (err: Error) => Promise<boolean | void>;
+export type DurationFactory = (counter: number) => number;
+export type Duration = DurationFactory | number;
 
 /**
  * Interval parameters
@@ -23,9 +25,9 @@ export interface Params {
     func: IntervalFunction | AsyncIntervalFunction;
 
     /**
-     * Interval time
+     * Timeout duration
      */
-    time: number;
+    time: Duration;
 
     /**
      * Custom error handler
@@ -35,8 +37,9 @@ export interface Params {
 
 export class Interval {
     private readonly __func: IntervalFunction | AsyncIntervalFunction;
-    private readonly __time: number;
+    private readonly __duration: Duration;
     private readonly __onError?: ErrorHandler | AsyncErrorHandler;
+    private __counter: 0;
     private __isRunning: boolean;
 
     constructor(params: Params) {
@@ -48,7 +51,7 @@ export class Interval {
             throw new Error(ERR_FUNC_TYPE);
         }
 
-        if (typeof params.time !== 'number') {
+        if (typeof params.time !== 'number' && typeof params.time !== 'function') {
             throw new Error(ERR_TIME_TYPE);
         }
 
@@ -57,9 +60,10 @@ export class Interval {
         }
 
         this.__func = params.func;
-        this.__time = params.time;
+        this.__duration = params.time;
         this.__onError = params.onError;
         this.__isRunning = false;
+        this.__counter = 0;
     }
 
     /**
@@ -80,6 +84,7 @@ export class Interval {
             throw new Error(ERR_START);
         }
 
+        this.__counter = 0;
         this.__isRunning = true;
         this.__nextTick();
 
@@ -102,9 +107,15 @@ export class Interval {
     }
 
     private __nextTick(): void {
-        if (this.__isRunning) {
-            setTimeout(() => this.__exec(), this.__time);
+        if (!this.__isRunning) {
+            return;
         }
+
+        this.__counter++;
+
+        const duration = typeof this.__duration !== 'function' ? this.__duration : this.__duration(this.__counter);
+
+        setTimeout(() => this.__exec(), duration);
     }
 
     private __exec(): void {

@@ -17,8 +17,9 @@
 You can find API [here](http://ziflex.github.io/pinterval)
 
 ## Features
-- Error handling
-- Async execution
+- Support of async execution
+- Graceful error handling
+- Customization
 
 ## Usage
 
@@ -127,6 +128,30 @@ const interval = new Interval({
 interval.start();
 
 ```
+
+### Dynamic duration
+Starting v3.3.0, you can pass a duration factory function into the consutrctor, in order to calculate dynamically interval duration for each tick:
+
+```javascript
+
+import { Interval } from 'pinterval';
+
+const minTimeout = 500;
+const maxTimeout = 10000;
+const interval = new Interval({
+    func: () => console.log('Tick!'),
+    time: (counter) => {
+        const timeout = Math.round(minTimeout * Math.pow(2, counter));
+
+        return Math.min(timeout, maxTimeout);
+    }
+});
+
+interval.start();
+
+```
+
+The function receives a number of a tick, so you can use it to write an algorithm more accurately.
 
 ### Helpers
 

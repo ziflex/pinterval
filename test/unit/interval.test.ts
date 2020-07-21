@@ -220,6 +220,34 @@ describe('Interval', () => {
             });
         });
 
+        context('When duration is a function', () => {
+            it('should receive a counter', async () => {
+                const stub = sinon.stub();
+                stub.onCall(5).returns(false);
+
+                const spyCounter = sinon.spy();
+                const interval = new Interval({
+                    func: stub,
+                    time: (counter) => {
+                        spyCounter(counter);
+                        return 10 * counter;
+                    },
+                });
+
+                interval.start();
+
+                await sleep(1000);
+
+                expect(interval.isRunning).to.be.false;
+                expect(spyCounter.callCount).greaterThan(0);
+                expect(spyCounter.args[0][0]).to.eq(1);
+                expect(spyCounter.args[1][0]).to.eq(2);
+                expect(spyCounter.args[2][0]).to.eq(3);
+                expect(spyCounter.args[3][0]).to.eq(4);
+                expect(spyCounter.args[4][0]).to.eq(5);
+            });
+        });
+
         context('When async', () => {
             context('When error handler is not provided', () => {
                 it('should catch an error and stop', async () => {
