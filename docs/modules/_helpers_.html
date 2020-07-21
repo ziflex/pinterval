@@ -77,6 +77,8 @@
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_helpers_.html#pollpredicateasync" class="tsd-kind-icon">Poll<wbr>Predicate<wbr>Async</a></li>
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_helpers_.html#timespredicate" class="tsd-kind-icon">Times<wbr>Predicate</a></li>
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_helpers_.html#timespredicateasync" class="tsd-kind-icon">Times<wbr>Predicate<wbr>Async</a></li>
+								<li class="tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter"><a href="_helpers_.html#untilpredicate" class="tsd-kind-icon">Until<wbr>Predicate</a></li>
+								<li class="tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter"><a href="_helpers_.html#untilpredicateasync" class="tsd-kind-icon">Until<wbr>Predicate<wbr>Async</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
@@ -85,6 +87,7 @@
 								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_helpers_.html#poll" class="tsd-kind-icon">poll</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_helpers_.html#sleep" class="tsd-kind-icon">sleep</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_helpers_.html#times" class="tsd-kind-icon">times</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter"><a href="_helpers_.html#until" class="tsd-kind-icon">until</a></li>
 							</ul>
 						</section>
 					</div>
@@ -98,7 +101,7 @@
 					<div class="tsd-signature tsd-kind-icon">Poll<wbr>Predicate<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">boolean</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/5c728f9/src/helpers.ts#L3">helpers.ts:3</a></li>
+							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L3">helpers.ts:3</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -123,7 +126,7 @@
 					<div class="tsd-signature tsd-kind-icon">Poll<wbr>Predicate<wbr>Async<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/5c728f9/src/helpers.ts#L4">helpers.ts:4</a></li>
+							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L4">helpers.ts:4</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -148,7 +151,7 @@
 					<div class="tsd-signature tsd-kind-icon">Times<wbr>Predicate<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span>counter<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/5c728f9/src/helpers.ts#L33">helpers.ts:33</a></li>
+							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L65">helpers.ts:65</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -179,7 +182,7 @@
 					<div class="tsd-signature tsd-kind-icon">Times<wbr>Predicate<wbr>Async<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span>counter<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/5c728f9/src/helpers.ts#L34">helpers.ts:34</a></li>
+							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L66">helpers.ts:66</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -204,6 +207,68 @@
 						</ul>
 					</div>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter">
+					<a name="untilpredicate" class="tsd-anchor"></a>
+					<h3>Until<wbr>Predicate</h3>
+					<div class="tsd-signature tsd-kind-icon">Until<wbr>Predicate&lt;T&gt;<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">T</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L33">helpers.ts:33</a></li>
+						</ul>
+					</aside>
+					<h4 class="tsd-type-parameters-title">Type parameters</h4>
+					<ul class="tsd-type-parameters">
+						<li>
+							<h4>T</h4>
+						</li>
+					</ul>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-signature">
+								<ul class="tsd-signatures tsd-kind-type-literal tsd-parent-kind-type-alias">
+									<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span></li>
+								</ul>
+								<ul class="tsd-descriptions">
+									<li class="tsd-description">
+										<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter">
+					<a name="untilpredicateasync" class="tsd-anchor"></a>
+					<h3>Until<wbr>Predicate<wbr>Async</h3>
+					<div class="tsd-signature tsd-kind-icon">Until<wbr>Predicate<wbr>Async&lt;T&gt;<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L34">helpers.ts:34</a></li>
+						</ul>
+					</aside>
+					<h4 class="tsd-type-parameters-title">Type parameters</h4>
+					<ul class="tsd-type-parameters">
+						<li>
+							<h4>T</h4>
+						</li>
+					</ul>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-signature">
+								<ul class="tsd-signatures tsd-kind-type-literal tsd-parent-kind-type-alias">
+									<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
+								</ul>
+								<ul class="tsd-descriptions">
+									<li class="tsd-description">
+										<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Functions</h2>
@@ -211,13 +276,13 @@
 					<a name="poll" class="tsd-anchor"></a>
 					<h3>poll</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
-						<li class="tsd-signature tsd-kind-icon">poll<span class="tsd-signature-symbol">(</span>predicate<span class="tsd-signature-symbol">: </span><a href="_helpers_.html#pollpredicate" class="tsd-signature-type">PollPredicate</a><span class="tsd-signature-symbol"> | </span><a href="_helpers_.html#pollpredicateasync" class="tsd-signature-type">PollPredicateAsync</a>, time<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">poll<span class="tsd-signature-symbol">(</span>predicate<span class="tsd-signature-symbol">: </span><a href="_helpers_.html#pollpredicate" class="tsd-signature-type">PollPredicate</a><span class="tsd-signature-symbol"> | </span><a href="_helpers_.html#pollpredicateasync" class="tsd-signature-type">PollPredicateAsync</a>, timeout<span class="tsd-signature-symbol">: </span><a href="_interval_.html#duration" class="tsd-signature-type">Duration</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/5c728f9/src/helpers.ts#L11">helpers.ts:11</a></li>
+									<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L11">helpers.ts:11</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -230,13 +295,13 @@
 								<li>
 									<h5>predicate: <a href="_helpers_.html#pollpredicate" class="tsd-signature-type">PollPredicate</a><span class="tsd-signature-symbol"> | </span><a href="_helpers_.html#pollpredicateasync" class="tsd-signature-type">PollPredicateAsync</a></h5>
 									<div class="tsd-comment tsd-typography">
-										<p>Polling predicate. The polling stops when the predicate returns &quot;true&quot;.</p>
+										<p>Polling predicate. The polling stops when the predicate returns &quot;false&quot;.</p>
 									</div>
 								</li>
 								<li>
-									<h5>time: <span class="tsd-signature-type">number</span></h5>
+									<h5>timeout: <a href="_interval_.html#duration" class="tsd-signature-type">Duration</a></h5>
 									<div class="tsd-comment tsd-typography">
-										<p>Polling intervals.</p>
+										<p>Polling timeout duration.</p>
 									</div>
 								</li>
 							</ul>
@@ -254,7 +319,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/5c728f9/src/helpers.ts#L73">helpers.ts:73</a></li>
+									<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L109">helpers.ts:109</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -279,13 +344,13 @@
 					<a name="times" class="tsd-anchor"></a>
 					<h3>times</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
-						<li class="tsd-signature tsd-kind-icon">times<span class="tsd-signature-symbol">(</span>predicate<span class="tsd-signature-symbol">: </span><a href="_helpers_.html#timespredicate" class="tsd-signature-type">TimesPredicate</a><span class="tsd-signature-symbol"> | </span><a href="_helpers_.html#timespredicateasync" class="tsd-signature-type">TimesPredicateAsync</a>, amount<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, time<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">times<span class="tsd-signature-symbol">(</span>predicate<span class="tsd-signature-symbol">: </span><a href="_helpers_.html#timespredicate" class="tsd-signature-type">TimesPredicate</a><span class="tsd-signature-symbol"> | </span><a href="_helpers_.html#timespredicateasync" class="tsd-signature-type">TimesPredicateAsync</a>, amount<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, timeout<span class="tsd-signature-symbol">: </span><a href="_interval_.html#duration" class="tsd-signature-type">Duration</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/5c728f9/src/helpers.ts#L42">helpers.ts:42</a></li>
+									<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L74">helpers.ts:74</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -305,13 +370,53 @@
 									<h5>amount: <span class="tsd-signature-type">number</span></h5>
 								</li>
 								<li>
-									<h5>time: <span class="tsd-signature-type">number</span></h5>
-									<div class="tsd-comment tsd-typography">
-										<p>A number that indicates time in ms between calls.</p>
-									</div>
+									<h5>timeout: <a href="_interval_.html#duration" class="tsd-signature-type">Duration</a></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+					<a name="until" class="tsd-anchor"></a>
+					<h3>until</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">until&lt;T&gt;<span class="tsd-signature-symbol">(</span>predicate<span class="tsd-signature-symbol">: </span><a href="_helpers_.html#untilpredicate" class="tsd-signature-type">UntilPredicate</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="_helpers_.html#untilpredicateasync" class="tsd-signature-type">UntilPredicateAsync</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span>, timeout<span class="tsd-signature-symbol">: </span><a href="_interval_.html#duration" class="tsd-signature-type">Duration</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/9a7e077/src/helpers.ts#L41">helpers.ts:41</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Implements polling mechanism using Interval until data or null is returned.</p>
+								</div>
+							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>T</h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>predicate: <a href="_helpers_.html#untilpredicate" class="tsd-signature-type">UntilPredicate</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="_helpers_.html#untilpredicateasync" class="tsd-signature-type">UntilPredicateAsync</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Polling predicate. The polling continues until the predicate returns anything but undefined.</p>
+									</div>
+								</li>
+								<li>
+									<h5>timeout: <a href="_interval_.html#duration" class="tsd-signature-type">Duration</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Polling timeout duration.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -348,6 +453,12 @@
 					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
 						<a href="_helpers_.html#timespredicateasync" class="tsd-kind-icon">Times<wbr>Predicate<wbr>Async</a>
 					</li>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="_helpers_.html#untilpredicate" class="tsd-kind-icon">Until<wbr>Predicate</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="_helpers_.html#untilpredicateasync" class="tsd-kind-icon">Until<wbr>Predicate<wbr>Async</a>
+					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module">
 						<a href="_helpers_.html#poll" class="tsd-kind-icon">poll</a>
 					</li>
@@ -356,6 +467,9 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module">
 						<a href="_helpers_.html#times" class="tsd-kind-icon">times</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="_helpers_.html#until" class="tsd-kind-icon">until</a>
 					</li>
 				</ul>
 			</nav>
@@ -369,7 +483,9 @@
 			<ul class="tsd-legend">
 				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
 				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
+				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
@@ -385,6 +501,5 @@
 </div>
 <div class="overlay"></div>
 <script src="../assets/js/main.js"></script>
-<script>if (location.protocol == 'file:') document.write('<script src="../assets/js/search.js"><' + '/script>');</script>
 </body>
 </html>

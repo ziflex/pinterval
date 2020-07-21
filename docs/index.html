@@ -85,8 +85,9 @@
 					<h2>Features</h2>
 				</a>
 				<ul>
-					<li>Error handling</li>
-					<li>Async execution</li>
+					<li>Support of async execution</li>
+					<li>Graceful error handling</li>
+					<li>Customization</li>
 				</ul>
 				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
 					<h2>Usage</h2>
@@ -183,6 +184,27 @@ interval.start();
 
 interval.start();
 </code></pre>
+				<a href="#dynamic-duration" id="dynamic-duration" style="color: inherit; text-decoration: none;">
+					<h3>Dynamic duration</h3>
+				</a>
+				<p>Starting v3.3.0, you can pass a duration factory function into the consutrctor, in order to calculate dynamically interval duration for each tick:</p>
+				<pre><code class="language-javascript">
+<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
+
+<span class="hljs-keyword">const</span> minTimeout = <span class="hljs-number">500</span>;
+<span class="hljs-keyword">const</span> maxTimeout = <span class="hljs-number">10000</span>;
+<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
+    <span class="hljs-attr">func</span>: <span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;Tick!&#x27;</span>),
+    <span class="hljs-attr">time</span>: <span class="hljs-function">(<span class="hljs-params">counter</span>) =&gt;</span> {
+        <span class="hljs-keyword">const</span> timeout = <span class="hljs-built_in">Math</span>.round(minTimeout * <span class="hljs-built_in">Math</span>.pow(<span class="hljs-number">2</span>, counter));
+
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">Math</span>.min(timeout, maxTimeout);
+    }
+});
+
+interval.start();
+</code></pre>
+				<p>The function receives a number of a tick, so you can use it to write an algorithm more accurately.</p>
 				<a href="#helpers" id="helpers" style="color: inherit; text-decoration: none;">
 					<h3>Helpers</h3>
 				</a>
@@ -197,6 +219,19 @@ interval.start();
     <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> someProgress();
 
     <span class="hljs-keyword">return</span> result === <span class="hljs-literal">true</span>;
+}, <span class="hljs-number">5000</span>);
+</code></pre>
+				<a href="#until" id="until" style="color: inherit; text-decoration: none;">
+					<h4>Until</h4>
+				</a>
+				<p><code>until</code> is similar to <code>poll</code> but it gives you a possibility to return a value for a polling function.<br>The polling continues until the predicate returns anything but undefined.</p>
+				<pre><code class="language-typescript">
+<span class="hljs-keyword">import</span> { until } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
+
+<span class="hljs-keyword">const</span> data = <span class="hljs-keyword">await</span> until(<span class="hljs-keyword">async</span> () =&gt; {
+    <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> someProgress();
+
+    <span class="hljs-keyword">return</span> result.data;
 }, <span class="hljs-number">5000</span>);
 </code></pre>
 				<a href="#times" id="times" style="color: inherit; text-decoration: none;">
@@ -243,7 +278,9 @@ interval.start();
 			<ul class="tsd-legend">
 				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
 				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
+				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
@@ -259,6 +296,5 @@ interval.start();
 </div>
 <div class="overlay"></div>
 <script src="assets/js/main.js"></script>
-<script>if (location.protocol == 'file:') document.write('<script src="assets/js/search.js"><' + '/script>');</script>
 </body>
 </html>
