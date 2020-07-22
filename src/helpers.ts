@@ -1,3 +1,4 @@
+import { isFunction } from 'util';
 import { Interval, Duration } from './interval';
 
 export type PollPredicate = () => boolean;
@@ -68,8 +69,8 @@ export type TimesPredicateAsync = (counter: number) => Promise<void>;
 /**
  * Executes a given function a specific amount of times.
  * @param predicate - A function to call.
- * @param amoun - A number that indicates how many times to call a given function.
- * @param time - A number that indicates time in ms between calls.
+ * @param amount - A number that indicates how many times to call a given function.
+ * @param timeout - A number or function returning a number that indicates time in ms between calls.
  */
 export function times(
     predicate: TimesPredicate | TimesPredicateAsync,
@@ -94,6 +95,59 @@ export function times(
                 }
 
                 return Promise.resolve(predicate(counter)).then(() => true);
+            },
+            onError: reject,
+        });
+
+        interval.start();
+    });
+}
+
+export type PipelinePredicate = (data: any) => void;
+export type PipelinePredicateAsync = (data: any) => Promise<void>;
+
+/**
+ * Executes a given array of functions with interval. Each function recieves an output of a previous one.
+ * If a timeout is number, the value is used between executions only i.e. the first function will be called with 0 timeout value.
+ * Otherwise a given function must calculate timeout value for the first call.
+ * @param predicates - An array of functions to execute.
+ * @param amoun - A number that indicates how many times to call a given function.
+ * @param timeout - A number or function returning a number that indicates time in ms between calls.
+ * @returns Output of the last function.
+ */
+export function pipeline(
+    predicates: Array<PipelinePredicate | PipelinePredicateAsync>,
+    timeout: Duration,
+): Promise<any> {
+    if (!Array.isArray(predicates)) {
+        throw new TypeError(`Expected "predicates" to by an array, but got ${typeof predicates}`);
+    }
+
+    if (!predicates.length) {
+        return Promise.resolve();
+    }
+
+    const timeoutFn: Duration = isFunction(timeout)
+        ? timeout
+        : (counter) => {
+              // start immediately for the first call
+              return counter > 1 ? (timeout as number) : 0;
+          };
+
+    return new Promise((resolve, reject) => {
+        const steps = predicates.slice();
+        let data;
+
+        const interval = new Interval({
+            time: timeoutFn,
+            func: () => {
+                const step = steps.shift();
+
+                if (!step) {
+                    return Promise.resolve(false).finally(() => resolve(data));
+                }
+
+                return Promise.resolve(step(data)).then((out) => (data = out));
             },
             onError: reject,
         });

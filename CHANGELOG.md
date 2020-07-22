@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.4.0
+### Added
+- ``pipeline`` helper function.
+
 ## 3.3.0
 ### Added
 - Support of dynamic interval duration by providing duration factory function.

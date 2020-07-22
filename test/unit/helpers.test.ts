@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { poll, times, until } from '../../src';
+import { poll, times, until, pipeline } from '../../src';
 
 describe('Helpers', () => {
     describe('poll', () => {
@@ -54,6 +54,32 @@ describe('Helpers', () => {
                 await times(() => spy(), 5, 200);
 
                 expect(spy.callCount).to.eq(5);
+            });
+        });
+    });
+
+    describe('pipeline', () => {
+        context('When sync', () => {
+            it('should pass data through', async () => {
+                const out = await pipeline([() => 1, (i) => i * 2, (i) => i * 3, (i) => i * 4], 100);
+
+                expect(out).to.eq(24);
+            });
+        });
+
+        context('When async', () => {
+            it('should pass data through', async () => {
+                const delay: any = (value: number, delay = 100) => {
+                    return new Promise((resolve) => {
+                        setTimeout(() => resolve(value), delay);
+                    });
+                };
+                const out = await pipeline(
+                    [() => delay(1), (i) => delay(i * 2), (i) => delay(i * 3), (i) => delay(i * 4)],
+                    100,
+                );
+
+                expect(out).to.eq(24);
             });
         });
     });

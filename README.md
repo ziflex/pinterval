@@ -201,3 +201,20 @@ await times(async (counter) => {
 }, 5, 1000);
 
 ```
+
+#### Pipeline
+
+``pipeline`` sequentially executes a given array of functions with an interval between executions.
+Each function recieves an output of a previous one.
+**NOTE**: Unlike other functions, ``pipeline`` executes a first function with 0 timeout time, which means the provided timeout value is used between executions only.
+If you want to override this behavior, you must provide a function that calculates timeouts.
+
+```typescript
+
+import { pipeline } from 'pinterval';
+
+const out = await pipeline([() => 1, (i) => i * 2, (i) => i * 3, (i) => i * 4], 100);
+
+console.log(out); // 24
+
+```

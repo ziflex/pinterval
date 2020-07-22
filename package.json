@@ -18,7 +18,18 @@
     },
     "keywords": [
         "interval",
-        "setInterval"
+        "setInterval",
+        "setinterval",
+        "setTimeout",
+        "settimeout",
+        "delay",
+        "poll",
+        "polling",
+        "repeat",
+        "pipeline",
+        "promise",
+        "async",
+        "await"
     ],
     "author": "Tim Voronov <ziflex@gmail.com>",
     "license": "MIT",

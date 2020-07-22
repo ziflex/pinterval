@@ -9,9 +9,9 @@ const ERR_ONERROR_TYPE = '"onError" must be a function';
 const ERR_TIME_TYPE = '"time" must be either a number or a function';
 
 export type IntervalFunction = () => boolean | void;
-export type AsyncIntervalFunction = () => Promise<boolean | void>;
+export type IntervalFunctionAsync = () => Promise<boolean | void>;
 export type ErrorHandler = (err: Error) => boolean | void;
-export type AsyncErrorHandler = (err: Error) => Promise<boolean | void>;
+export type ErrorHandlerAsync = (err: Error) => Promise<boolean | void>;
 export type DurationFactory = (counter: number) => number;
 export type Duration = DurationFactory | number;
 
@@ -22,7 +22,7 @@ export interface Params {
     /**
      * Function to execute
      */
-    func: IntervalFunction | AsyncIntervalFunction;
+    func: IntervalFunction | IntervalFunctionAsync;
 
     /**
      * Timeout duration
@@ -32,13 +32,13 @@ export interface Params {
     /**
      * Custom error handler
      */
-    onError?: ErrorHandler | AsyncErrorHandler;
+    onError?: ErrorHandler | ErrorHandlerAsync;
 }
 
 export class Interval {
-    private readonly __func: IntervalFunction | AsyncIntervalFunction;
+    private readonly __func: IntervalFunction | IntervalFunctionAsync;
     private readonly __duration: Duration;
-    private readonly __onError?: ErrorHandler | AsyncErrorHandler;
+    private readonly __onError?: ErrorHandler | ErrorHandlerAsync;
     private __counter: 0;
     private __isRunning: boolean;
 
