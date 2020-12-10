@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { Interval } from '../../src/index';
 
 async function sleep(time: number): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
         setTimeout(resolve, time);
     });
 }
@@ -150,7 +150,7 @@ describe('Interval', () => {
         it('should wait for an end of async execution before next tick', async () => {
             const spy = sinon.spy();
             const fn: any = () => {
-                return new Promise((resolve) => {
+                return new Promise<void>((resolve) => {
                     setTimeout(() => {
                         spy();
                         resolve();
@@ -252,7 +252,7 @@ describe('Interval', () => {
             context('When error handler is not provided', () => {
                 it('should catch an error and stop', async () => {
                     const fn: any = () => {
-                        return new Promise((resolve, reject) => {
+                        return new Promise<void>((resolve, reject) => {
                             setTimeout(() => {
                                 reject(new Error('Async error'));
                             }, 10);
@@ -274,7 +274,7 @@ describe('Interval', () => {
             context('When error handler is provided and returns "false"', () => {
                 it('should catch an error and stop', async () => {
                     const fn: any = () => {
-                        return new Promise((resolve, reject) => {
+                        return new Promise<void>((resolve, reject) => {
                             setTimeout(() => {
                                 reject(new Error('Async error'));
                             });
@@ -297,7 +297,7 @@ describe('Interval', () => {
             context('When error handler is provided and returns "true"', () => {
                 it('should catch an error and continue', async () => {
                     const fn: any = () => {
-                        return new Promise((_, reject) => {
+                        return new Promise<void>((_, reject) => {
                             setTimeout(() => {
                                 reject(new Error('Async error'));
                             });
