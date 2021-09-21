@@ -156,7 +156,7 @@ export class Interval {
                     return null;
                 });
         } catch (e) {
-            this.__handleError(e);
+            this.__handleError(e as Error);
         }
     }
 
