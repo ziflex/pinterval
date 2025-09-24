@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.4.1
+### Changed
+- Updated dependencies
+
 ## 3.4.0
 ### Added
 - ``pipeline`` helper function.

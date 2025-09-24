@@ -1,314 +1,49 @@
-<!doctype html>
-<html class="default no-js">
-<head>
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>pinterval</title>
-	<meta name="description" content="Documentation for pinterval">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="assets/css/main.css">
-</head>
-<body>
-<header>
-	<div class="tsd-page-toolbar">
-		<div class="container">
-			<div class="table-wrap">
-				<div class="table-cell" id="tsd-search" data-index="assets/js/search.json" data-base=".">
-					<div class="field">
-						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
-						<input id="tsd-search-field" type="text" />
-					</div>
-					<ul class="results">
-						<li class="state loading">Preparing search index...</li>
-						<li class="state failure">The search index is not available</li>
-					</ul>
-					<a href="index.html" class="title">pinterval</a>
-				</div>
-				<div class="table-cell" id="tsd-widgets">
-					<div id="tsd-filter">
-						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
-						<div class="tsd-filter-group">
-							<div class="tsd-select" id="tsd-filter-visibility">
-								<span class="tsd-select-label">All</span>
-								<ul class="tsd-select-list">
-									<li data-value="public">Public</li>
-									<li data-value="protected">Public/Protected</li>
-									<li data-value="private" class="selected">All</li>
-								</ul>
-							</div>
-							<input type="checkbox" id="tsd-filter-inherited" checked />
-							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
-							<input type="checkbox" id="tsd-filter-externals" checked />
-							<label class="tsd-widget" for="tsd-filter-externals">Externals</label>
-							<input type="checkbox" id="tsd-filter-only-exported" />
-							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
-						</div>
-					</div>
-					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="tsd-page-title">
-		<div class="container">
-			<ul class="tsd-breadcrumb">
-				<li>
-					<a href="globals.html">Globals</a>
-				</li>
-			</ul>
-			<h1>pinterval</h1>
-		</div>
-	</div>
-</header>
-<div class="container container-main">
-	<div class="row">
-		<div class="col-8 col-content">
-			<div class="tsd-panel tsd-typography">
-				<a href="#pinterval" id="pinterval" style="color: inherit; text-decoration: none;">
-					<h1>pinterval</h1>
-				</a>
-				<blockquote>
-					<p>Advanced setInterval</p>
-				</blockquote>
-				<p><a href="https://www.npmjs.com/package/pinterval"><img src="https://badge.fury.io/js/pinterval.svg" alt="npm version"></a>
-				<a href="https://github.com/ziflex/pinterval/actions"><img src="https://github.com/ziflex/pinterval/workflows/Node%20CI/badge.svg" alt="Actions Status"></a></p>
-				<pre><code class="language-sh">    npm install --save pinterval</code></pre>
-				<a href="#motivation" id="motivation" style="color: inherit; text-decoration: none;">
-					<h2>Motivation</h2>
-				</a>
-				<p><code>pinterval</code> is a small tool that provides an advance mechanism for running an arbitrary code in intervals with flexible and simple API. It&#39;s a good fit for small badckground tasks. It supports both sync and async execution of a given function.</p>
-				<a href="#api" id="api" style="color: inherit; text-decoration: none;">
-					<h2>API</h2>
-				</a>
-				<p>You can find API <a href="http://ziflex.github.io/pinterval">here</a></p>
-				<a href="#features" id="features" style="color: inherit; text-decoration: none;">
-					<h2>Features</h2>
-				</a>
-				<ul>
-					<li>Support of async execution</li>
-					<li>Graceful error handling</li>
-					<li>Customization</li>
-				</ul>
-				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
-					<h2>Usage</h2>
-				</a>
-				<a href="#basic" id="basic" style="color: inherit; text-decoration: none;">
-					<h3>Basic</h3>
-				</a>
-				<pre><code class="language-javascript">
-<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-
-<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
-    <span class="hljs-attr">func</span>: <span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;Tick!&#x27;</span>),
-    <span class="hljs-attr">time</span>: <span class="hljs-number">1000</span>
-});
-
-interval.start();
-</code></pre>
-				<a href="#auto-stop" id="auto-stop" style="color: inherit; text-decoration: none;">
-					<h3>Auto stop</h3>
-				</a>
-				<p>If <code>func</code> returns <code>false</code>, the interval automatically stops.
-				The following interval will stop after 10 calls.</p>
-				<pre><code class="language-javascript">
-<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-<span class="hljs-keyword">import</span> sinon <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;sinon&#x27;</span>;
-
-<span class="hljs-keyword">const</span> spy = sinon.spy();
-<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
-    <span class="hljs-attr">func</span>: <span class="hljs-function">() =&gt;</span> {
-        spy();
-
-        <span class="hljs-keyword">return</span> spy.calledCount &lt; <span class="hljs-number">10</span>;
-    },
-    <span class="hljs-attr">time</span>: <span class="hljs-number">1000</span>
-});
-
-interval.start();
-</code></pre>
-				<a href="#error-handling" id="error-handling" style="color: inherit; text-decoration: none;">
-					<h3>Error handling</h3>
-				</a>
-				<pre><code class="language-typescript">
-<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-
-<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
-    func: <span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;Tick!&#x27;</span>),
-    time: <span class="hljs-number">1000</span>,
-    onError: <span class="hljs-function">(<span class="hljs-params">err</span>) =&gt;</span> {
-        <span class="hljs-keyword">if</span> (err <span class="hljs-keyword">instanceof</span> FatalError) {
-            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>; <span class="hljs-comment">// stop interval and terminate all further execution</span>
-        }
-
-        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
-    }
-});
-
-interval.start();
-</code></pre>
-				<a href="#async" id="async" style="color: inherit; text-decoration: none;">
-					<h3>Async</h3>
-				</a>
-				<p>In order to pass async function, it must return a promise on each tick.
-				Each tick is calcualated after async function completion in order to avoid race conditions.</p>
-				<pre><code class="language-typescript">
-<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-
-<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
-    func: <span class="hljs-function">() =&gt;</span> {
-        <span class="hljs-keyword">return</span> fetch(<span class="hljs-string">&#x27;https://github.com/trending&#x27;</span>)
-    },
-    time: <span class="hljs-number">1000</span>
-});
-
-interval.start();
-</code></pre>
-				<p>Additionally, error handler can be asynchronous too:</p>
-				<pre><code class="language-typescript">
-<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-
-<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
-    func: <span class="hljs-function">() =&gt;</span> {
-        <span class="hljs-keyword">return</span> fetch(<span class="hljs-string">&#x27;https://github.com/trending&#x27;</span>)
-    },
-    time: <span class="hljs-number">1000</span>,
-    onError: <span class="hljs-function">(<span class="hljs-params">err: <span class="hljs-built_in">Error</span></span>) =&gt;</span> {
-        <span class="hljs-keyword">return</span> fetch(<span class="hljs-string">&#x27;my-service&#x27;</span>, {
-            method: <span class="hljs-string">&#x27;POST&#x27;</span>,
-            body: <span class="hljs-built_in">JSON</span>.stringify({
-                timerError: err
-            })
-        })
-    }
-});
-
-interval.start();
-</code></pre>
-				<a href="#dynamic-duration" id="dynamic-duration" style="color: inherit; text-decoration: none;">
-					<h3>Dynamic duration</h3>
-				</a>
-				<p>Starting v3.3.0, you can pass a duration factory function into the consutrctor, in order to calculate dynamically interval duration for each tick:</p>
-				<pre><code class="language-javascript">
-<span class="hljs-keyword">import</span> { Interval } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-
-<span class="hljs-keyword">const</span> minTimeout = <span class="hljs-number">500</span>;
-<span class="hljs-keyword">const</span> maxTimeout = <span class="hljs-number">10000</span>;
-<span class="hljs-keyword">const</span> interval = <span class="hljs-keyword">new</span> Interval({
-    <span class="hljs-attr">func</span>: <span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;Tick!&#x27;</span>),
-    <span class="hljs-attr">time</span>: <span class="hljs-function">(<span class="hljs-params">counter</span>) =&gt;</span> {
-        <span class="hljs-keyword">const</span> timeout = <span class="hljs-built_in">Math</span>.round(minTimeout * <span class="hljs-built_in">Math</span>.pow(<span class="hljs-number">2</span>, counter));
-
-        <span class="hljs-keyword">return</span> <span class="hljs-built_in">Math</span>.min(timeout, maxTimeout);
-    }
-});
-
-interval.start();
-</code></pre>
-				<p>The function receives a number of a tick, so you can use it to write an algorithm more accurately.</p>
-				<a href="#helpers" id="helpers" style="color: inherit; text-decoration: none;">
-					<h3>Helpers</h3>
-				</a>
-				<a href="#polling" id="polling" style="color: inherit; text-decoration: none;">
-					<h4>Polling</h4>
-				</a>
-				<p><code>poll</code> implements a simple polling mechanism.</p>
-				<pre><code class="language-typescript">
-<span class="hljs-keyword">import</span> { poll } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-
-<span class="hljs-keyword">await</span> poll(<span class="hljs-keyword">async</span> () =&gt; {
-    <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> someProgress();
-
-    <span class="hljs-keyword">return</span> result === <span class="hljs-literal">true</span>;
-}, <span class="hljs-number">5000</span>);
-</code></pre>
-				<a href="#until" id="until" style="color: inherit; text-decoration: none;">
-					<h4>Until</h4>
-				</a>
-				<p><code>until</code> is similar to <code>poll</code> but it gives you a possibility to return a value for a polling function.<br>The polling continues until the predicate returns anything but undefined.</p>
-				<pre><code class="language-typescript">
-<span class="hljs-keyword">import</span> { until } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-
-<span class="hljs-keyword">const</span> data = <span class="hljs-keyword">await</span> until(<span class="hljs-keyword">async</span> () =&gt; {
-    <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> someProgress();
-
-    <span class="hljs-keyword">return</span> result.data;
-}, <span class="hljs-number">5000</span>);
-</code></pre>
-				<a href="#times" id="times" style="color: inherit; text-decoration: none;">
-					<h4>Times</h4>
-				</a>
-				<p><code>times</code> executes a given function a specific amount of times.</p>
-				<pre><code class="language-typescript">
-<span class="hljs-keyword">import</span> { times } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-
-<span class="hljs-keyword">await</span> times(<span class="hljs-keyword">async</span> (counter) =&gt; {
-    <span class="hljs-keyword">await</span> updateSomething(counter);
-}, <span class="hljs-number">5</span>, <span class="hljs-number">1000</span>);
-</code></pre>
-				<a href="#pipeline" id="pipeline" style="color: inherit; text-decoration: none;">
-					<h4>Pipeline</h4>
-				</a>
-				<p><code>pipeline</code> sequentially executes a given array of functions with an interval between executions.
-					Each function recieves an output of a previous one.
-					<strong>NOTE</strong>: Unlike other functions, <code>pipeline</code> executes a first function with 0 timeout time, which means the provided timeout value is used between executions only.
-				If you want to override this behavior, you must provide a function that calculates timeouts.</p>
-				<pre><code class="language-typescript">
-<span class="hljs-keyword">import</span> { pipeline } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;pinterval&#x27;</span>;
-
-<span class="hljs-keyword">const</span> out = <span class="hljs-keyword">await</span> pipeline([<span class="hljs-function">() =&gt;</span> <span class="hljs-number">1</span>, <span class="hljs-function">(<span class="hljs-params">i</span>) =&gt;</span> i * <span class="hljs-number">2</span>, <span class="hljs-function">(<span class="hljs-params">i</span>) =&gt;</span> i * <span class="hljs-number">3</span>, <span class="hljs-function">(<span class="hljs-params">i</span>) =&gt;</span> i * <span class="hljs-number">4</span>], <span class="hljs-number">100</span>);
-
-<span class="hljs-built_in">console</span>.log(out); <span class="hljs-comment">// 24</span>
-</code></pre>
-			</div>
-		</div>
-		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
-			<nav class="tsd-navigation primary">
-				<ul>
-					<li class="globals  ">
-						<a href="globals.html"><em>Globals</em></a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_helpers_.html">&quot;helpers&quot;</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_index_.html">&quot;index&quot;</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_interval_.html">&quot;interval&quot;</a>
-					</li>
-				</ul>
-			</nav>
-			<nav class="tsd-navigation secondary menu-sticky">
-				<ul class="before-current">
-				</ul>
-			</nav>
-		</div>
-	</div>
-</div>
-<footer class="with-border-bottom">
-	<div class="container">
-		<h2>Legend</h2>
-		<div class="tsd-legend-group">
-			<ul class="tsd-legend">
-				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
-				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
-				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
-				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
-				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
-			</ul>
-		</div>
-	</div>
-</footer>
-<div class="container tsd-generator">
-	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
-</div>
-<div class="overlay"></div>
-<script src="assets/js/main.js"></script>
-</body>
-</html>
+<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>pinterval</title><meta name="description" content="Documentation for pinterval"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><div class="table-cell" id="tsd-search" data-base="."><div class="field"><label for="tsd-search-field" class="tsd-widget tsd-toolbar-icon search no-caption"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><use href="assets/icons.svg#icon-search"></use></svg></label><input type="text" id="tsd-search-field" aria-label="Search"/></div><div class="field"><div id="tsd-toolbar-links"></div></div><ul class="results"><li class="state loading">Preparing search index...</li><li class="state failure">The search index is not available</li></ul><a href="index.html" class="title">pinterval</a></div><div class="table-cell" id="tsd-widgets"><a href="#" class="tsd-widget tsd-toolbar-icon menu no-caption" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><use href="assets/icons.svg#icon-menu"></use></svg></a></div></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><h2>pinterval</h2></div><div class="tsd-panel tsd-typography"><a id="md:pinterval" class="tsd-anchor"></a><h1><a href="#md:pinterval">pinterval</a></h1><blockquote>
+<p>Advanced setInterval</p>
+</blockquote>
+<p><a href="https://www.npmjs.com/package/pinterval"><img src="https://badge.fury.io/js/pinterval.svg" alt="npm version"></a>
+<a href="https://github.com/ziflex/pinterval/actions"><img src="https://github.com/ziflex/pinterval/workflows/Node%20CI/badge.svg" alt="Actions Status"></a></p>
+<pre><code class="language-sh"><span class="hl-0">    </span><span class="hl-1">npm</span><span class="hl-0"> </span><span class="hl-2">install</span><span class="hl-0"> </span><span class="hl-3">--save</span><span class="hl-0"> </span><span class="hl-2">pinterval</span>
+</code><button>Copy</button></pre>
+<a id="md:motivation" class="tsd-anchor"></a><h2><a href="#md:motivation">Motivation</a></h2><p><code>pinterval</code> is a small tool that provides an advance mechanism for running an arbitrary code in intervals with flexible and simple API. It&#39;s a good fit for small badckground tasks. It supports both sync and async execution of a given function.</p>
+<a id="md:api" class="tsd-anchor"></a><h2><a href="#md:api">API</a></h2><p>You can find API <a href="http://ziflex.github.io/pinterval">here</a></p>
+<a id="md:features" class="tsd-anchor"></a><h2><a href="#md:features">Features</a></h2><ul>
+<li>Support of async execution</li>
+<li>Graceful error handling</li>
+<li>Customization</li>
+</ul>
+<a id="md:usage" class="tsd-anchor"></a><h2><a href="#md:usage">Usage</a></h2><a id="md:basic" class="tsd-anchor"></a><h3><a href="#md:basic">Basic</a></h3><pre><code class="language-javascript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">Interval</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">interval</span><span class="hl-0"> = </span><span class="hl-3">new</span><span class="hl-0"> </span><span class="hl-1">Interval</span><span class="hl-0">({</span><br/><span class="hl-0">    </span><span class="hl-1">func</span><span class="hl-5">:</span><span class="hl-0"> () </span><span class="hl-3">=&gt;</span><span class="hl-0"> </span><span class="hl-5">console</span><span class="hl-0">.</span><span class="hl-1">log</span><span class="hl-0">(</span><span class="hl-2">&#39;Tick!&#39;</span><span class="hl-0">),</span><br/><span class="hl-0">    </span><span class="hl-5">time:</span><span class="hl-0"> </span><span class="hl-7">1000</span><br/><span class="hl-0">});</span><br/><br/><span class="hl-5">interval</span><span class="hl-0">.</span><span class="hl-1">start</span><span class="hl-0">();</span><br/>
+</code><button>Copy</button></pre>
+<a id="md:auto-stop" class="tsd-anchor"></a><h3><a href="#md:auto-stop">Auto stop</a></h3><p>If <code>func</code> returns <code>false</code>, the interval automatically stops.
+The following interval will stop after 10 calls.</p>
+<pre><code class="language-javascript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">Interval</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><span class="hl-4">import</span><span class="hl-0"> </span><span class="hl-5">sinon</span><span class="hl-0"> </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;sinon&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">spy</span><span class="hl-0"> = </span><span class="hl-5">sinon</span><span class="hl-0">.</span><span class="hl-1">spy</span><span class="hl-0">();</span><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">interval</span><span class="hl-0"> = </span><span class="hl-3">new</span><span class="hl-0"> </span><span class="hl-1">Interval</span><span class="hl-0">({</span><br/><span class="hl-0">    </span><span class="hl-1">func</span><span class="hl-5">:</span><span class="hl-0"> () </span><span class="hl-3">=&gt;</span><span class="hl-0"> {</span><br/><span class="hl-0">        </span><span class="hl-1">spy</span><span class="hl-0">();</span><br/><br/><span class="hl-0">        </span><span class="hl-4">return</span><span class="hl-0"> </span><span class="hl-5">spy</span><span class="hl-0">.</span><span class="hl-5">calledCount</span><span class="hl-0"> &lt; </span><span class="hl-7">10</span><span class="hl-0">;</span><br/><span class="hl-0">    },</span><br/><span class="hl-0">    </span><span class="hl-5">time:</span><span class="hl-0"> </span><span class="hl-7">1000</span><br/><span class="hl-0">});</span><br/><br/><span class="hl-5">interval</span><span class="hl-0">.</span><span class="hl-1">start</span><span class="hl-0">();</span><br/>
+</code><button>Copy</button></pre>
+<a id="md:error-handling" class="tsd-anchor"></a><h3><a href="#md:error-handling">Error handling</a></h3><pre><code class="language-typescript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">Interval</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">interval</span><span class="hl-0"> = </span><span class="hl-3">new</span><span class="hl-0"> </span><span class="hl-1">Interval</span><span class="hl-0">({</span><br/><span class="hl-0">    </span><span class="hl-1">func</span><span class="hl-5">:</span><span class="hl-0"> () </span><span class="hl-3">=&gt;</span><span class="hl-0"> </span><span class="hl-5">console</span><span class="hl-0">.</span><span class="hl-1">log</span><span class="hl-0">(</span><span class="hl-2">&#39;Tick!&#39;</span><span class="hl-0">),</span><br/><span class="hl-0">    </span><span class="hl-5">time:</span><span class="hl-0"> </span><span class="hl-7">1000</span><span class="hl-0">,</span><br/><span class="hl-0">    </span><span class="hl-1">onError</span><span class="hl-5">:</span><span class="hl-0"> (</span><span class="hl-5">err</span><span class="hl-0">) </span><span class="hl-3">=&gt;</span><span class="hl-0"> {</span><br/><span class="hl-0">        </span><span class="hl-4">if</span><span class="hl-0"> (</span><span class="hl-5">err</span><span class="hl-0"> </span><span class="hl-3">instanceof</span><span class="hl-0"> </span><span class="hl-8">FatalError</span><span class="hl-0">) {</span><br/><span class="hl-0">            </span><span class="hl-4">return</span><span class="hl-0"> </span><span class="hl-3">false</span><span class="hl-0">; </span><span class="hl-9">// stop interval and terminate all further execution</span><br/><span class="hl-0">        }</span><br/><br/><span class="hl-0">        </span><span class="hl-4">return</span><span class="hl-0"> </span><span class="hl-3">true</span><span class="hl-0">;</span><br/><span class="hl-0">    }</span><br/><span class="hl-0">});</span><br/><br/><span class="hl-5">interval</span><span class="hl-0">.</span><span class="hl-1">start</span><span class="hl-0">();</span><br/>
+</code><button>Copy</button></pre>
+<a id="md:async" class="tsd-anchor"></a><h3><a href="#md:async">Async</a></h3><p>In order to pass async function, it must return a promise on each tick.
+Each tick is calcualated after async function completion in order to avoid race conditions.</p>
+<pre><code class="language-typescript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">Interval</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">interval</span><span class="hl-0"> = </span><span class="hl-3">new</span><span class="hl-0"> </span><span class="hl-1">Interval</span><span class="hl-0">({</span><br/><span class="hl-0">    </span><span class="hl-1">func</span><span class="hl-5">:</span><span class="hl-0"> () </span><span class="hl-3">=&gt;</span><span class="hl-0"> {</span><br/><span class="hl-0">        </span><span class="hl-4">return</span><span class="hl-0"> </span><span class="hl-1">fetch</span><span class="hl-0">(</span><span class="hl-2">&#39;https://github.com/trending&#39;</span><span class="hl-0">)</span><br/><span class="hl-0">    },</span><br/><span class="hl-0">    </span><span class="hl-5">time:</span><span class="hl-0"> </span><span class="hl-7">1000</span><br/><span class="hl-0">});</span><br/><br/><span class="hl-5">interval</span><span class="hl-0">.</span><span class="hl-1">start</span><span class="hl-0">();</span><br/>
+</code><button>Copy</button></pre>
+<p>Additionally, error handler can be asynchronous too:</p>
+<pre><code class="language-typescript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">Interval</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">interval</span><span class="hl-0"> = </span><span class="hl-3">new</span><span class="hl-0"> </span><span class="hl-1">Interval</span><span class="hl-0">({</span><br/><span class="hl-0">    </span><span class="hl-1">func</span><span class="hl-5">:</span><span class="hl-0"> () </span><span class="hl-3">=&gt;</span><span class="hl-0"> {</span><br/><span class="hl-0">        </span><span class="hl-4">return</span><span class="hl-0"> </span><span class="hl-1">fetch</span><span class="hl-0">(</span><span class="hl-2">&#39;https://github.com/trending&#39;</span><span class="hl-0">)</span><br/><span class="hl-0">    },</span><br/><span class="hl-0">    </span><span class="hl-5">time:</span><span class="hl-0"> </span><span class="hl-7">1000</span><span class="hl-0">,</span><br/><span class="hl-0">    </span><span class="hl-1">onError</span><span class="hl-5">:</span><span class="hl-0"> (</span><span class="hl-5">err</span><span class="hl-0">: </span><span class="hl-8">Error</span><span class="hl-0">) </span><span class="hl-3">=&gt;</span><span class="hl-0"> {</span><br/><span class="hl-0">        </span><span class="hl-4">return</span><span class="hl-0"> </span><span class="hl-1">fetch</span><span class="hl-0">(</span><span class="hl-2">&#39;my-service&#39;</span><span class="hl-0">, {</span><br/><span class="hl-0">            </span><span class="hl-5">method:</span><span class="hl-0"> </span><span class="hl-2">&#39;POST&#39;</span><span class="hl-0">,</span><br/><span class="hl-0">            </span><span class="hl-5">body:</span><span class="hl-0"> </span><span class="hl-6">JSON</span><span class="hl-0">.</span><span class="hl-1">stringify</span><span class="hl-0">({</span><br/><span class="hl-0">                </span><span class="hl-5">timerError:</span><span class="hl-0"> </span><span class="hl-5">err</span><br/><span class="hl-0">            })</span><br/><span class="hl-0">        })</span><br/><span class="hl-0">    }</span><br/><span class="hl-0">});</span><br/><br/><span class="hl-5">interval</span><span class="hl-0">.</span><span class="hl-1">start</span><span class="hl-0">();</span><br/>
+</code><button>Copy</button></pre>
+<a id="md:dynamic-duration" class="tsd-anchor"></a><h3><a href="#md:dynamic-duration">Dynamic duration</a></h3><p>Starting v3.3.0, you can pass a duration factory function into the consutrctor, in order to calculate dynamically interval duration for each tick:</p>
+<pre><code class="language-javascript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">Interval</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">minTimeout</span><span class="hl-0"> = </span><span class="hl-7">500</span><span class="hl-0">;</span><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">maxTimeout</span><span class="hl-0"> = </span><span class="hl-7">10000</span><span class="hl-0">;</span><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">interval</span><span class="hl-0"> = </span><span class="hl-3">new</span><span class="hl-0"> </span><span class="hl-1">Interval</span><span class="hl-0">({</span><br/><span class="hl-0">    </span><span class="hl-1">func</span><span class="hl-5">:</span><span class="hl-0"> () </span><span class="hl-3">=&gt;</span><span class="hl-0"> </span><span class="hl-5">console</span><span class="hl-0">.</span><span class="hl-1">log</span><span class="hl-0">(</span><span class="hl-2">&#39;Tick!&#39;</span><span class="hl-0">),</span><br/><span class="hl-0">    </span><span class="hl-1">time</span><span class="hl-5">:</span><span class="hl-0"> (</span><span class="hl-5">counter</span><span class="hl-0">) </span><span class="hl-3">=&gt;</span><span class="hl-0"> {</span><br/><span class="hl-0">        </span><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">timeout</span><span class="hl-0"> = </span><span class="hl-5">Math</span><span class="hl-0">.</span><span class="hl-1">round</span><span class="hl-0">(</span><span class="hl-5">minTimeout</span><span class="hl-0"> * </span><span class="hl-5">Math</span><span class="hl-0">.</span><span class="hl-1">pow</span><span class="hl-0">(</span><span class="hl-7">2</span><span class="hl-0">, </span><span class="hl-5">counter</span><span class="hl-0">));</span><br/><br/><span class="hl-0">        </span><span class="hl-4">return</span><span class="hl-0"> </span><span class="hl-5">Math</span><span class="hl-0">.</span><span class="hl-1">min</span><span class="hl-0">(</span><span class="hl-5">timeout</span><span class="hl-0">, </span><span class="hl-5">maxTimeout</span><span class="hl-0">);</span><br/><span class="hl-0">    }</span><br/><span class="hl-0">});</span><br/><br/><span class="hl-5">interval</span><span class="hl-0">.</span><span class="hl-1">start</span><span class="hl-0">();</span><br/>
+</code><button>Copy</button></pre>
+<p>The function receives a number of a tick, so you can use it to write an algorithm more accurately.</p>
+<a id="md:helpers" class="tsd-anchor"></a><h3><a href="#md:helpers">Helpers</a></h3><a id="md:polling" class="tsd-anchor"></a><h4><a href="#md:polling">Polling</a></h4><p><code>poll</code> implements a simple polling mechanism.</p>
+<pre><code class="language-typescript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">poll</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-4">await</span><span class="hl-0"> </span><span class="hl-1">poll</span><span class="hl-0">(</span><span class="hl-3">async</span><span class="hl-0"> () </span><span class="hl-3">=&gt;</span><span class="hl-0"> {</span><br/><span class="hl-0">    </span><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">result</span><span class="hl-0"> = </span><span class="hl-4">await</span><span class="hl-0"> </span><span class="hl-1">someProgress</span><span class="hl-0">();</span><br/><br/><span class="hl-0">    </span><span class="hl-4">return</span><span class="hl-0"> </span><span class="hl-5">result</span><span class="hl-0"> === </span><span class="hl-3">true</span><span class="hl-0">;</span><br/><span class="hl-0">}, </span><span class="hl-7">5000</span><span class="hl-0">);</span><br/>
+</code><button>Copy</button></pre>
+<a id="md:until" class="tsd-anchor"></a><h4><a href="#md:until">Until</a></h4><p><code>until</code> is similar to <code>poll</code> but it gives you a possibility to return a value for a polling function.<br>The polling continues until the predicate returns anything but undefined.</p>
+<pre><code class="language-typescript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">until</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">data</span><span class="hl-0"> = </span><span class="hl-4">await</span><span class="hl-0"> </span><span class="hl-1">until</span><span class="hl-0">(</span><span class="hl-3">async</span><span class="hl-0"> () </span><span class="hl-3">=&gt;</span><span class="hl-0"> {</span><br/><span class="hl-0">    </span><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">result</span><span class="hl-0"> = </span><span class="hl-4">await</span><span class="hl-0"> </span><span class="hl-1">someProgress</span><span class="hl-0">();</span><br/><br/><span class="hl-0">    </span><span class="hl-4">return</span><span class="hl-0"> </span><span class="hl-5">result</span><span class="hl-0">.</span><span class="hl-5">data</span><span class="hl-0">;</span><br/><span class="hl-0">}, </span><span class="hl-7">5000</span><span class="hl-0">);</span><br/>
+</code><button>Copy</button></pre>
+<a id="md:times" class="tsd-anchor"></a><h4><a href="#md:times">Times</a></h4><p><code>times</code> executes a given function a specific amount of times.</p>
+<pre><code class="language-typescript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">times</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-4">await</span><span class="hl-0"> </span><span class="hl-1">times</span><span class="hl-0">(</span><span class="hl-3">async</span><span class="hl-0"> (</span><span class="hl-5">counter</span><span class="hl-0">) </span><span class="hl-3">=&gt;</span><span class="hl-0"> {</span><br/><span class="hl-0">    </span><span class="hl-4">await</span><span class="hl-0"> </span><span class="hl-1">updateSomething</span><span class="hl-0">(</span><span class="hl-5">counter</span><span class="hl-0">);</span><br/><span class="hl-0">}, </span><span class="hl-7">5</span><span class="hl-0">, </span><span class="hl-7">1000</span><span class="hl-0">);</span><br/>
+</code><button>Copy</button></pre>
+<a id="md:pipeline" class="tsd-anchor"></a><h4><a href="#md:pipeline">Pipeline</a></h4><p><code>pipeline</code> sequentially executes a given array of functions with an interval between executions.
+Each function recieves an output of a previous one.
+<strong>NOTE</strong>: Unlike other functions, <code>pipeline</code> executes a first function with 0 timeout time, which means the provided timeout value is used between executions only.
+If you want to override this behavior, you must provide a function that calculates timeouts.</p>
+<pre><code class="language-typescript"><br/><span class="hl-4">import</span><span class="hl-0"> { </span><span class="hl-5">pipeline</span><span class="hl-0"> } </span><span class="hl-4">from</span><span class="hl-0"> </span><span class="hl-2">&#39;pinterval&#39;</span><span class="hl-0">;</span><br/><br/><span class="hl-3">const</span><span class="hl-0"> </span><span class="hl-6">out</span><span class="hl-0"> = </span><span class="hl-4">await</span><span class="hl-0"> </span><span class="hl-1">pipeline</span><span class="hl-0">([() </span><span class="hl-3">=&gt;</span><span class="hl-0"> </span><span class="hl-7">1</span><span class="hl-0">, (</span><span class="hl-5">i</span><span class="hl-0">) </span><span class="hl-3">=&gt;</span><span class="hl-0"> </span><span class="hl-5">i</span><span class="hl-0"> * </span><span class="hl-7">2</span><span class="hl-0">, (</span><span class="hl-5">i</span><span class="hl-0">) </span><span class="hl-3">=&gt;</span><span class="hl-0"> </span><span class="hl-5">i</span><span class="hl-0"> * </span><span class="hl-7">3</span><span class="hl-0">, (</span><span class="hl-5">i</span><span class="hl-0">) </span><span class="hl-3">=&gt;</span><span class="hl-0"> </span><span class="hl-5">i</span><span class="hl-0"> * </span><span class="hl-7">4</span><span class="hl-0">], </span><span class="hl-7">100</span><span class="hl-0">);</span><br/><br/><span class="hl-5">console</span><span class="hl-0">.</span><span class="hl-1">log</span><span class="hl-0">(</span><span class="hl-5">out</span><span class="hl-0">); </span><span class="hl-9">// 24</span><br/>
+</code><button>Copy</button></pre>
+</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-index-accordion"><summary class="tsd-accordion-summary"><h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="assets/icons.svg#icon-chevronDown"></use></svg>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><h4 class="uppercase">Member Visibility</h4><form><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></form></div><div class="tsd-theme-toggle"><h4 class="uppercase">Theme</h4><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-index-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="assets/icons.svg#icon-chevronDown"></use></svg>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#md:pinterval"><span>pinterval</span></a><ul><li><a href="#md:motivation"><span>Motivation</span></a></li><li><a href="#md:api"><span>API</span></a></li><li><a href="#md:features"><span>Features</span></a></li><li><a href="#md:usage"><span>Usage</span></a></li><li><ul><li><a href="#md:basic"><span>Basic</span></a></li><li><a href="#md:auto-stop"><span>Auto stop</span></a></li><li><a href="#md:error-handling"><span>Error handling</span></a></li><li><a href="#md:async"><span>Async</span></a></li><li><a href="#md:dynamic-duration"><span>Dynamic duration</span></a></li><li><a href="#md:helpers"><span>Helpers</span></a></li><li><ul><li><a href="#md:polling"><span>Polling</span></a></li><li><a href="#md:until"><span>Until</span></a></li><li><a href="#md:times"><span>Times</span></a></li><li><a href="#md:pipeline"><span>Pipeline</span></a></li></ul></li></ul></li></ul></div></details></div><div class="site-menu"><nav class="tsd-navigation"><a href="modules.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="assets/icons.svg#icon-1"></use></svg><span>pinterval</span></a><ul class="tsd-small-nested-navigation" id="tsd-nav-container" data-base="."><li>Loading...</li></ul></nav></div></div></div><footer><p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer><div class="overlay"></div></body></html>
