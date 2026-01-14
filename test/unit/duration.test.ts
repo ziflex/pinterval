@@ -7,7 +7,7 @@ describe('Duration functions', () => {
         it('should return the same value for all counters', () => {
             const fn = duration.constant(1000);
 
-            expect(fn(0)).to.equal(1000);
+            expect(fn(1)).to.equal(1000);
             expect(fn(5)).to.equal(1000);
             expect(fn(100)).to.equal(1000);
         });
@@ -17,24 +17,23 @@ describe('Duration functions', () => {
         it('should increase duration linearly', () => {
             const fn = duration.linear(100, 50);
 
-            expect(fn(0)).to.equal(100); // 100 + 0*50
-            expect(fn(1)).to.equal(150); // 100 + 1*50
-            expect(fn(2)).to.equal(200); // 100 + 2*50
-            expect(fn(5)).to.equal(350); // 100 + 5*50
+            expect(fn(1)).to.equal(100); // 100 + 0*50
+            expect(fn(2)).to.equal(150); // 100 + 1*50
+            expect(fn(5)).to.equal(300); // 100 + 4*50
         });
 
         it('should handle zero increment', () => {
             const fn = duration.linear(500, 0);
 
-            expect(fn(0)).to.equal(500);
-            expect(fn(10)).to.equal(500);
+            expect(fn(1)).to.equal(500);
+            expect(fn(11)).to.equal(500);
         });
 
         it('should handle negative increment', () => {
             const fn = duration.linear(1000, -100);
 
-            expect(fn(0)).to.equal(1000);
-            expect(fn(5)).to.equal(500);
+            expect(fn(1)).to.equal(1000);
+            expect(fn(6)).to.equal(500);
         });
     });
 
@@ -42,26 +41,26 @@ describe('Duration functions', () => {
         it('should double duration each iteration', () => {
             const fn = duration.exponential(100);
 
-            expect(fn(0)).to.equal(100); // 100 * 2^0
-            expect(fn(1)).to.equal(200); // 100 * 2^1
-            expect(fn(2)).to.equal(400); // 100 * 2^2
-            expect(fn(3)).to.equal(800); // 100 * 2^3
+            expect(fn(1)).to.equal(100); // 100 * 2^0
+            expect(fn(2)).to.equal(200); // 100 * 2^1
+            expect(fn(3)).to.equal(400); // 100 * 2^2
+            expect(fn(4)).to.equal(800); // 100 * 2^3
         });
 
         it('should cap at maximum value when provided', () => {
             const fn = duration.exponential(100, 500);
 
-            expect(fn(0)).to.equal(100);
-            expect(fn(1)).to.equal(200);
-            expect(fn(2)).to.equal(400);
-            expect(fn(3)).to.equal(500); // capped
+            expect(fn(1)).to.equal(100);
+            expect(fn(2)).to.equal(200);
+            expect(fn(3)).to.equal(400);
             expect(fn(4)).to.equal(500); // capped
+            expect(fn(5)).to.equal(500); // capped
         });
 
         it('should grow unbounded without max', () => {
             const fn = duration.exponential(10);
 
-            expect(fn(10)).to.equal(10240); // 10 * 2^10
+            expect(fn(11)).to.equal(10240); // 10 * 2^10
         });
     });
 
@@ -69,12 +68,12 @@ describe('Duration functions', () => {
         it('should follow Fibonacci sequence', () => {
             const fn = duration.fibonacci(100);
 
-            expect(fn(0)).to.equal(100); // F(0)
             expect(fn(1)).to.equal(100); // F(1)
-            expect(fn(2)).to.equal(200); // F(2) = F(0) + F(1)
-            expect(fn(3)).to.equal(300); // F(3) = F(1) + F(2)
-            expect(fn(4)).to.equal(500); // F(4) = F(2) + F(3)
-            expect(fn(5)).to.equal(800); // F(5) = F(3) + F(4)
+            expect(fn(2)).to.equal(200); // F(1)
+            expect(fn(3)).to.equal(300); // F(2) = F(0) + F(1)
+            expect(fn(4)).to.equal(500); // F(3) = F(1) + F(2)
+            expect(fn(5)).to.equal(800);
+            expect(fn(6)).to.equal(1300);
         });
 
         it('should work with different initial values', () => {
@@ -107,7 +106,7 @@ describe('Duration functions', () => {
             const maxJitter = base * 0.1;
 
             for (let i = 0; i < 20; i++) {
-                const result = fn(2);
+                const result = fn(3);
                 expect(result).to.be.at.least(base - maxJitter);
                 expect(result).to.be.at.most(base + maxJitter);
             }

@@ -6,7 +6,7 @@ import { DurationFunction } from './interval';
 const linear =
     (initial: number, increment: number): DurationFunction =>
     (counter) =>
-        initial + counter * increment;
+        initial + (counter > 0 ? counter - 1 : counter) * increment;
 
 /**
  * Exponential backoff - doubles the duration each iteration with optional max cap.
@@ -14,7 +14,7 @@ const linear =
 const exponential =
     (initial: number, max?: number): DurationFunction =>
     (counter) => {
-        const duration = initial * Math.pow(2, counter);
+        const duration = initial * Math.pow(2, counter > 0 ? counter - 1 : counter);
         return max ? Math.min(duration, max) : duration;
     };
 
@@ -45,7 +45,7 @@ const fibonacci = (initial: number): DurationFunction => {
 const jittered =
     (initial: number, max?: number, jitterFactor = 0.1): DurationFunction =>
     (counter) => {
-        const base = initial * Math.pow(2, counter);
+        const base = initial * Math.pow(2, counter > 0 ? counter - 1 : counter);
         const capped = max ? Math.min(base, max) : base;
         const jitter = capped * jitterFactor * (Math.random() - 0.5);
         return Math.max(0, capped + jitter);
