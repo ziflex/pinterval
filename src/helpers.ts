@@ -14,7 +14,7 @@ export function poll(predicate: PollPredicate | PollPredicateAsync, timeout: Dur
             time: timeout,
             func: () => {
                 return Promise.resolve(predicate()).then((out) => {
-                    if (typeof out === 'boolean' && out) {
+                    if (out === true) {
                         return true;
                     }
 
