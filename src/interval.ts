@@ -31,9 +31,8 @@ export interface Params {
     func: IntervalFunction | IntervalFunctionAsync;
 
     /**
-     * Represents a specific duration of time.
-     * The `time` variable holds a value that specifies a duration or interval.
-     * This can be used for calculations or operations involving periods of time.
+     * Represents a duration of time.
+     * It can be either a number (milliseconds) or a function that returns a number based on the counter.
      */
     time: Duration;
 
