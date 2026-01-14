@@ -26,7 +26,6 @@ export interface Params {
      * - `IntervalFunction`: A synchronous function that performs operations or computations within a specified interval.
      * - `IntervalFunctionAsync`: An asynchronous function that performs similar operations but allows for asynchronous processing.
      *
-     * This variable is typically utilized in contexts where interval-based computations or operations are required.
      */
     func: IntervalFunction | IntervalFunctionAsync;
 
@@ -37,7 +36,7 @@ export interface Params {
     time: Duration;
 
     /**
-     * The `start` variable determines the initiation mode of a process.
+     * Determines the initiation mode of a process.
      * It can be set to either:
      * - `'immediate'`: The process begins immediately without delay.
      * - `'delayed'`: The process starts after the first timeout.
@@ -53,9 +52,6 @@ export interface Params {
      *
      * - If an `ErrorHandlerAsync` is provided, it should be an asynchronous function
      *   capable of handling errors with asynchronous operations.
-     *
-     * Use this variable to define custom error-handling logic specific to the
-     * implemented context.
      *
      */
     onError?: ErrorHandler | ErrorHandlerAsync;
