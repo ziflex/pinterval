@@ -1,16 +1,24 @@
-import { Duration, Interval } from './interval';
+import { Duration, Interval, StartMode } from './interval';
 
 export type PollPredicate = () => boolean;
 export type PollPredicateAsync = () => Promise<boolean>;
 
 /**
- * Implements polling mechanism using Interval.
- * @param predicate - Polling predicate. The polling stops when the predicate returns "false".
- * @param timeout - Polling timeout duration.
+ * Repeatedly evaluates a predicate function at a defined interval until it resolves to `true` or the timeout is reached.
+ *
+ * @param {PollPredicate | PollPredicateAsync} predicate - The function to evaluate. Can be synchronous or asynchronous.
+ * @param {Duration} timeout - The duration for which the polling continues.
+ * @param {StartMode} [start='delayed'] - Determines when the polling interval starts. Default is 'delayed'.
+ * @return {Promise<void>} A promise that resolves when the predicate returns `true` or rejects if an error occurs in the process.
  */
-export function poll(predicate: PollPredicate | PollPredicateAsync, timeout: Duration): Promise<void> {
+export function poll(
+    predicate: PollPredicate | PollPredicateAsync,
+    timeout: Duration,
+    start: StartMode = 'delayed',
+): Promise<void> {
     return new Promise((resolve, reject) => {
         const interval = new Interval({
+            start,
             time: timeout,
             func: () => {
                 return Promise.resolve(predicate()).then((out) => {
@@ -34,13 +42,21 @@ export type UntilPredicate<T> = () => T;
 export type UntilPredicateAsync<T> = () => Promise<T>;
 
 /**
- * Implements polling mechanism using Interval until data or null is returned.
- * @param predicate - Polling predicate. The polling continues until the predicate returns anything but undefined.
- * @param timeout - Polling timeout duration.
+ * Executes a polling mechanism that repeatedly checks a predicate until it resolves to a defined value or a timeout occurs.
+ *
+ * @param {UntilPredicate<T> | UntilPredicateAsync<T>} predicate - A function or asynchronous function that evaluates the condition to be met. The function should return the desired value once the condition is met or undefined if the condition is not met yet.
+ * @param {Duration} timeout - The maximum duration for which the polling should continue before timing out.
+ * @param {StartMode} [start='delayed'] - Determines whether the polling starts immediately or with a delay. Defaults to 'delayed'.
+ * @return {Promise<T>} A promise that resolves with the value returned by the predicate when its condition is met or rejects if an error occurs.
  */
-export function until<T>(predicate: UntilPredicate<T> | UntilPredicateAsync<T>, timeout: Duration): Promise<T> {
+export function until<T>(
+    predicate: UntilPredicate<T> | UntilPredicateAsync<T>,
+    timeout: Duration,
+    start: StartMode = 'delayed',
+): Promise<T> {
     return new Promise<T>((resolve, reject) => {
         const interval = new Interval({
+            start,
             time: timeout,
             func: () => {
                 return Promise.resolve(predicate()).then((out: T) => {
@@ -66,28 +82,34 @@ export type TimesPredicate = (counter: number) => void;
 export type TimesPredicateAsync = (counter: number) => Promise<void>;
 
 /**
- * Executes a given function a specific amount of times.
- * @param predicate - A function to call.
- * @param amount - A number that indicates how many times to call a given function.
- * @param timeout - A number or function returning a number that indicates time in ms between calls.
+ * Executes a function a specified number of times with a delay between executions.
+ *
+ * @param {TimesPredicate | TimesPredicateAsync} predicate - A synchronous or asynchronous function
+ * to be executed on each iteration. The function receives the current iteration count as an argument.
+ * @param {number} amount - The number of times the predicate should be executed. If set to a value less than 0,
+ * the method resolves immediately without performing any executions.
+ * @param {Duration} timeout - The delay duration between consecutive executions of the predicate.
+ * @param {StartMode} [start='delayed'] - Determines how the interval should begin. Defaults to `'delayed'`,
+ * which starts the timeout before the first execution.
+ * @return {Promise<void>} Resolves when the predicate has been executed the specified number of times
+ * or if the specified amount is less than 0. Rejects if an error occurs during predicate execution.
  */
 export function times(
     predicate: TimesPredicate | TimesPredicateAsync,
     amount: number,
     timeout: Duration,
+    start: StartMode = 'delayed',
 ): Promise<void> {
     if (amount < 0) {
         return Promise.resolve();
     }
 
     return new Promise((resolve, reject) => {
-        let counter = -1;
         const interval = new Interval({
+            start,
             time: timeout,
-            func: () => {
-                counter++;
-
-                if (counter >= amount) {
+            func: (counter) => {
+                if (counter > amount) {
                     resolve();
 
                     return Promise.resolve(false);
@@ -102,17 +124,63 @@ export function times(
     });
 }
 
+export type RetryPredicate<T> = () => T;
+export type RetryPredicateAsync<T> = () => Promise<T>;
+const ERR_ATTEMPT_LIMIT_EXCEEDED = 'Attempt limit exceeded';
+
+/**
+ * Executes a retry mechanism for a specified predicate function until it succeeds,
+ * the maximum number of attempts is reached, or the timeout is hit.
+ *
+ * @param predicate - A synchronous or asynchronous predicate function that determines when the retry operation is successful.
+ * @param attempts - The maximum number of retry attempts before giving up.
+ * @param timeout - The timeout duration between each retry attempt.
+ * @param start - The start mode for the retry interval ('immediate' or 'delayed').
+ * @return {Promise<T>} A promise that resolves with the result from the predicate function if successful within the configured attempts and timeout. Rejects if the retry attempts are exhausted or another error occurs.
+ */
+export function retry<T>(
+    predicate: RetryPredicate<T> | RetryPredicateAsync<T>,
+    attempts: number,
+    timeout: Duration,
+    start: StartMode = 'delayed',
+): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const interval = new Interval({
+            start,
+            time: timeout,
+            func: (counter) => {
+                if (counter > attempts) {
+                    return Promise.reject(new Error(ERR_ATTEMPT_LIMIT_EXCEEDED));
+                }
+
+                return Promise.resolve(predicate()).then((out: T) => {
+                    // if result is not available, continue polling
+                    if (typeof out === 'undefined') {
+                        return true;
+                    }
+
+                    // when result finally is available, stop polling
+                    resolve(out);
+
+                    return false;
+                });
+            },
+            onError: reject,
+        });
+
+        interval.start();
+    });
+}
+
 export type PipelinePredicate = (data: any) => void;
 export type PipelinePredicateAsync = (data: any) => Promise<void>;
 
 /**
- * Executes a given array of functions with interval. Each function recieves an output of a previous one.
- * If a timeout is number, the value is used between executions only i.e. the first function will be called with 0 timeout value.
- * Otherwise a given function must calculate timeout value for the first call.
- * @param predicates - An array of functions to execute.
- * @param amoun - A number that indicates how many times to call a given function.
- * @param timeout - A number or function returning a number that indicates time in ms between calls.
- * @returns Output of the last function.
+ * Executes an array of predicates or asynchronous predicates sequentially with an optional timeout between executions.
+ *
+ * @param {Array<PipelinePredicate | PipelinePredicateAsync>} predicates - A sequence of functions to be executed in order. Each function can be synchronous or asynchronous.
+ * @param {Duration} timeout - A duration or a function that determines the timeout between consecutive executions. If it's a constant value, it applies the same timeout for all steps. If it's a function, it receives the execution counter and defines a dynamic timeout.
+ * @return {Promise<any>} A promise that resolves with the final output after all predicates have been executed, or resolves immediately if no predicates are provided.
  */
 export function pipeline(
     predicates: Array<PipelinePredicate | PipelinePredicateAsync>,
@@ -157,8 +225,10 @@ export function pipeline(
 }
 
 /**
- * Returns a promise that gets resolved in a given period.
- * @param time - Sleep period.
+ * Pauses the execution of code for a specified amount of time.
+ *
+ * @param {number} time - The duration to sleep in milliseconds.
+ * @return {Promise<void>} A promise that resolves after the specified duration.
  */
 export function sleep(time: number): Promise<void> {
     return new Promise((resolve) => {

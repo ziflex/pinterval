@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import { pipeline, poll, times, until } from '../../src';
+import { pipeline, poll, retry, times, until } from '../../src';
 
 describe('Helpers', () => {
     describe('poll', () => {
@@ -55,6 +55,52 @@ describe('Helpers', () => {
                 await times(() => spy(), 5, 200);
 
                 expect(spy.callCount).to.eq(5);
+            });
+        });
+    });
+
+    describe('retry', () => {
+        context('When value is returned before limit', () => {
+            it('should stop and return the value', async () => {
+                const spy = sinon.spy();
+                const data = await retry(
+                    () => {
+                        spy();
+
+                        if (spy.callCount < 5) {
+                            return undefined;
+                        }
+
+                        return 'foo';
+                    },
+                    5,
+                    200,
+                );
+
+                expect(spy.callCount).to.eq(5);
+                expect(data).to.eql('foo');
+            });
+        });
+
+        context('When attempt limit is exceeded', () => {
+            it('should reject with "Attempt limit exceeded"', async () => {
+                const spy = sinon.spy();
+
+                try {
+                    await retry(
+                        () => {
+                            spy();
+                            return undefined;
+                        },
+                        5,
+                        10,
+                    );
+                    throw new Error('Expected attempt to reject');
+                } catch (err: any) {
+                    expect(spy.callCount).to.eq(5);
+                    expect(err).to.be.instanceOf(Error);
+                    expect(err.message).to.eq('Attempt limit exceeded');
+                }
             });
         });
     });
