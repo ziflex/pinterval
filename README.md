@@ -188,6 +188,22 @@ const data = await until(async () => {
 
 ```
 
+#### Retry
+
+``retry`` is a combination of ``poll`` and ``until``. 
+It executes a given function until it returns a truthy value or number of retries is reached.
+
+```typescript
+
+import { retry } from 'pinterval';
+
+const data = await retry(async () => {
+    const result = await someProgress();
+    return result.data;
+}, 5, 2000);
+
+```
+
 #### Times
 
 ``times`` executes a given function a specific amount of times.

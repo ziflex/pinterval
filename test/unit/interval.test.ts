@@ -321,4 +321,114 @@ describe('Interval', () => {
             });
         });
     });
+
+    describe('Start modes', () => {
+        context('When start mode is "delayed" (default)', () => {
+            it('should wait for the first interval before calling handler', async () => {
+                const spy = sinon.spy();
+                const interval = new Interval({
+                    func: spy,
+                    time: 200,
+                    start: 'delayed',
+                });
+
+                interval.start();
+
+                // Handler should not be called immediately
+                expect(spy.callCount).to.equal(0);
+
+                await sleep(100);
+                expect(spy.callCount).to.equal(0);
+
+                await sleep(120);
+                expect(spy.callCount).to.equal(1);
+
+                interval.stop();
+            });
+
+            it('should use "delayed" mode when start parameter is not provided', async () => {
+                const spy = sinon.spy();
+                const interval = new Interval({
+                    func: spy,
+                    time: 200,
+                });
+
+                interval.start();
+
+                // Handler should not be called immediately
+                expect(spy.callCount).to.equal(0);
+
+                await sleep(220);
+                expect(spy.callCount).to.equal(1);
+
+                interval.stop();
+            });
+        });
+
+        context('When start mode is "immediate"', () => {
+            it('should call handler immediately on start', async () => {
+                const spy = sinon.spy();
+                const interval = new Interval({
+                    func: spy,
+                    time: 200,
+                    start: 'immediate',
+                });
+
+                interval.start();
+                await sleep(100);
+
+                expect(spy.callCount).to.equal(1);
+
+                await sleep(220);
+                expect(spy.callCount).to.equal(2);
+
+                interval.stop();
+            });
+
+            it('should call handler multiple times with immediate mode', async () => {
+                const spy = sinon.spy();
+                const interval = new Interval({
+                    func: spy,
+                    time: 100,
+                    start: 'immediate',
+                });
+
+                interval.start();
+
+                await sleep(10);
+
+                expect(spy.callCount).to.equal(1);
+
+                await sleep(120);
+                expect(spy.callCount).to.equal(2);
+
+                await sleep(110);
+                expect(spy.callCount).to.equal(3);
+
+                interval.stop();
+            });
+
+            it('should respect counter in immediate mode', async () => {
+                const spyCounter = sinon.spy();
+                const interval = new Interval({
+                    func: (counter) => {
+                        spyCounter(counter);
+                        return counter < 3;
+                    },
+                    time: 100,
+                    start: 'immediate',
+                });
+
+                interval.start();
+
+                await sleep(400);
+
+                expect(spyCounter.callCount).to.equal(3);
+                expect(spyCounter.args[0][0]).to.equal(1);
+                expect(spyCounter.args[1][0]).to.equal(2);
+                expect(spyCounter.args[2][0]).to.equal(3);
+                expect(interval.isRunning).to.be.false;
+            });
+        });
+    });
 });

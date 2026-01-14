@@ -7,29 +7,52 @@ const ERR_FUNC_TYPE = '"func" must be a function';
 const ERR_ONERROR_TYPE = '"onError" must be a function';
 const ERR_TIME_TYPE = '"time" must be either a number or a function';
 
-export type IntervalFunction = () => boolean | void;
-export type IntervalFunctionAsync = () => Promise<boolean | void>;
+export type IntervalFunction = (() => boolean | void) | ((counter: number) => boolean | void);
+export type IntervalFunctionAsync = (() => Promise<boolean | void>) | ((counter: number) => Promise<boolean | void>);
 export type ErrorHandler = (err: Error) => boolean | void;
 export type ErrorHandlerAsync = (err: Error) => Promise<boolean | void>;
 export type DurationFactory = (counter: number) => number;
 export type Duration = DurationFactory | number;
+export type StartMode = 'immediate' | 'delayed';
 
 /**
  * Interval parameters
  */
 export interface Params {
     /**
-     * Function to execute
+     * Represents a function that operates on intervals. This function can be either synchronous or asynchronous.
+     *
+     * The `func` variable can hold two types of functions:
+     * - `IntervalFunction`: A synchronous function that performs operations or computations within a specified interval.
+     * - `IntervalFunctionAsync`: An asynchronous function that performs similar operations but allows for asynchronous processing.
+     *
      */
     func: IntervalFunction | IntervalFunctionAsync;
 
     /**
-     * Timeout duration
+     * Represents a duration of time.
+     * It can be either a number (milliseconds) or a function that returns a number based on the counter.
      */
     time: Duration;
 
     /**
-     * Custom error handler
+     * Determines the initiation mode of a process.
+     * It can be set to either:
+     * - `'immediate'`: The process begins immediately without delay.
+     * - `'delayed'`: The process starts after the first timeout.
+     */
+    start?: StartMode;
+
+    /**
+     * A callback function that handles errors during the execution of an operation.
+     * This function will be invoked whenever an error is encountered.
+     *
+     * - If an `ErrorHandler` is provided, it should be a synchronous function that
+     *   processes the error immediately.
+     *
+     * - If an `ErrorHandlerAsync` is provided, it should be an asynchronous function
+     *   capable of handling errors with asynchronous operations.
+     *
      */
     onError?: ErrorHandler | ErrorHandlerAsync;
 }
@@ -38,6 +61,7 @@ export class Interval {
     private readonly __func: IntervalFunction | IntervalFunctionAsync;
     private readonly __duration: Duration;
     private readonly __onError?: ErrorHandler | ErrorHandlerAsync;
+    private readonly __startMode: StartMode;
     private __counter: 0;
     private __isRunning: boolean;
 
@@ -61,6 +85,7 @@ export class Interval {
         this.__func = params.func;
         this.__duration = params.time;
         this.__onError = params.onError;
+        this.__startMode = params.start || 'delayed';
         this.__isRunning = false;
         this.__counter = 0;
     }
@@ -85,7 +110,7 @@ export class Interval {
 
         this.__counter = 0;
         this.__isRunning = true;
-        this.__nextTick();
+        this.__enqueue();
 
         return this;
     }
@@ -105,19 +130,22 @@ export class Interval {
         return this;
     }
 
-    private __nextTick(): void {
+    private __enqueue(): void {
         if (!this.__isRunning) {
             return;
         }
 
         this.__counter++;
+        let duration = 0;
 
-        const duration = typeof this.__duration !== 'function' ? this.__duration : this.__duration(this.__counter);
+        if (this.__startMode === 'delayed' || this.__counter > 1) {
+            duration = typeof this.__duration !== 'function' ? this.__duration : this.__duration(this.__counter);
+        }
 
-        setTimeout(() => this.__exec(), duration);
+        setTimeout(() => this.__call(), duration);
     }
 
-    private __exec(): void {
+    private __call(): void {
         if (!this.__isRunning) {
             return;
         }
@@ -125,11 +153,11 @@ export class Interval {
         const func = this.__func;
 
         try {
-            const out = func();
+            const out = func(this.__counter);
 
             if (!isPromise(out)) {
                 if (out !== false) {
-                    this.__nextTick();
+                    this.__enqueue();
 
                     return;
                 }
@@ -142,7 +170,7 @@ export class Interval {
             (out as Promise<boolean | undefined>)
                 .then((result: boolean | undefined) => {
                     if (result !== false) {
-                        this.__nextTick();
+                        this.__enqueue();
 
                         return;
                     }
@@ -175,7 +203,7 @@ export class Interval {
 
         if (!isPromise(out)) {
             if (out === true) {
-                this.__nextTick();
+                this.__enqueue();
             } else {
                 this.stop();
             }
@@ -186,7 +214,7 @@ export class Interval {
         (out as Promise<boolean>)
             .then((res: boolean) => {
                 if (res === true) {
-                    this.__nextTick();
+                    this.__enqueue();
                 } else {
                     this.stop();
                 }
