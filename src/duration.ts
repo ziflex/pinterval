@@ -66,15 +66,14 @@ const decorrelatedJitter = (initial: number, max: number): DurationFunction => {
 /**
  * Step function - fixed durations at specific counter thresholds.
  */
-const steps =
-    (durations: { threshold: number; duration: number }[]): DurationFunction => {
-        const sorted = [...durations].sort((a, b) => b.threshold - a.threshold);
-        const defaultDuration = durations[0].duration;
-        return (counter) => {
-            const step = sorted.find((s) => counter >= s.threshold);
-            return step?.duration ?? defaultDuration;
-        };
+const steps = (durations: { threshold: number; duration: number }[]): DurationFunction => {
+    const sorted = [...durations].sort((a, b) => b.threshold - a.threshold);
+    const defaultDuration = durations[0].duration;
+    return (counter) => {
+        const step = sorted.find((s) => counter >= s.threshold);
+        return step?.duration ?? defaultDuration;
     };
+};
 
 /**
  * Constant duration - always returns the same value.
