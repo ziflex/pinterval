@@ -20,16 +20,13 @@ export type StartMode = 'immediate' | 'delayed';
  */
 export interface Params {
     /**
-     * Represents a function that can either be synchronous or asynchronous,
-     * intended to operate over a specified interval or perform interval-based tasks.
+     * Represents a function that operates on intervals. This function can be either synchronous or asynchronous.
      *
-     * @typedef {Function} IntervalFunction
-     * A synchronous function that performs a specific task within an interval.
+     * The `func` variable can hold two types of functions:
+     * - `IntervalFunction`: A synchronous function that performs operations or computations within a specified interval.
+     * - `IntervalFunctionAsync`: An asynchronous function that performs similar operations but allows for asynchronous processing.
      *
-     * @typedef {Function} IntervalFunctionAsync
-     * An asynchronous function that performs a specific task within an interval.
-     *
-     * @type {IntervalFunction | IntervalFunctionAsync}
+     * This variable is typically utilized in contexts where interval-based computations or operations are required.
      */
     func: IntervalFunction | IntervalFunctionAsync;
 
@@ -61,7 +58,6 @@ export interface Params {
      * Use this variable to define custom error-handling logic specific to the
      * implemented context.
      *
-     * @type {ErrorHandler|ErrorHandlerAsync}
      */
     onError?: ErrorHandler | ErrorHandlerAsync;
 }
