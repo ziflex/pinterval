@@ -11,8 +11,8 @@ export type IntervalFunction = (() => boolean | void) | ((counter: number) => bo
 export type IntervalFunctionAsync = (() => Promise<boolean | void>) | ((counter: number) => Promise<boolean | void>);
 export type ErrorHandler = (err: Error) => boolean | void;
 export type ErrorHandlerAsync = (err: Error) => Promise<boolean | void>;
-export type DurationFactory = (counter: number) => number;
-export type Duration = DurationFactory | number;
+export type DurationFunction = (counter: number) => number;
+export type Duration = DurationFunction | number;
 export type StartMode = 'immediate' | 'delayed';
 
 /**
