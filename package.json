@@ -38,7 +38,6 @@
     },
     "homepage": "https://github.com/ziflex/pinterval#readme",
     "dependencies": {
-        "is-function": "^1.0.2",
         "is-promise": "^4.0.0"
     },
     "devDependencies": {
