@@ -1,4 +1,3 @@
-import isFunction from 'is-function';
 import isPromise from 'is-promise';
 
 const ERR_START = 'Interval is already running';
@@ -47,7 +46,7 @@ export class Interval {
             throw new Error(ERR_MISSED_PARAMS);
         }
 
-        if (!isFunction(params.func)) {
+        if (typeof params.func !== 'function') {
             throw new Error(ERR_FUNC_TYPE);
         }
 
@@ -55,7 +54,7 @@ export class Interval {
             throw new Error(ERR_TIME_TYPE);
         }
 
-        if (params.onError != null && isFunction(params.onError) === false) {
+        if (params.onError != null && typeof params.onError !== 'function') {
             throw new Error(ERR_ONERROR_TYPE);
         }
 

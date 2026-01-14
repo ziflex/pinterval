@@ -1,4 +1,3 @@
-import { isFunction } from 'util';
 import { Interval, Duration } from './interval';
 
 export type PollPredicate = () => boolean;
@@ -127,7 +126,7 @@ export function pipeline(
         return Promise.resolve();
     }
 
-    const timeoutFn: Duration = isFunction(timeout)
+    const timeoutFn: Duration = typeof timeout === 'function'
         ? timeout
         : (counter) => {
               // start immediately for the first call
