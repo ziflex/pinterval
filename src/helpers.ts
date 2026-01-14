@@ -1,4 +1,4 @@
-import { Interval, Duration } from './interval';
+import { Duration, Interval } from './interval';
 
 export type PollPredicate = () => boolean;
 export type PollPredicateAsync = () => Promise<boolean>;
@@ -126,12 +126,13 @@ export function pipeline(
         return Promise.resolve();
     }
 
-    const timeoutFn: Duration = typeof timeout === 'function'
-        ? timeout
-        : (counter) => {
-              // start immediately for the first call
-              return counter > 1 ? (timeout as number) : 0;
-          };
+    const timeoutFn: Duration =
+        typeof timeout === 'function'
+            ? timeout
+            : (counter) => {
+                  // start immediately for the first call
+                  return counter > 1 ? (timeout as number) : 0;
+              };
 
     return new Promise((resolve, reject) => {
         const steps = predicates.slice();

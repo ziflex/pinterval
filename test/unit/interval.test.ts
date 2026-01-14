@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
+
 import { Interval } from '../../src/index';
 
 async function sleep(time: number): Promise<void> {

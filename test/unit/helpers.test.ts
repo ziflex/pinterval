@@ -1,6 +1,7 @@
-import sinon from 'sinon';
 import { expect } from 'chai';
-import { poll, times, until, pipeline } from '../../src';
+import sinon from 'sinon';
+
+import { pipeline, poll, times, until } from '../../src';
 
 describe('Helpers', () => {
     describe('poll', () => {
