@@ -252,7 +252,7 @@ describe('Interval', () => {
             context('When error handler is not provided', () => {
                 it('should catch an error and stop', async () => {
                     const fn: any = () => {
-                        return new Promise<void>((resolve, reject) => {
+                        return new Promise<void>((_, reject) => {
                             setTimeout(() => {
                                 reject(new Error('Async error'));
                             }, 10);
@@ -274,7 +274,7 @@ describe('Interval', () => {
             context('When error handler is provided and returns "false"', () => {
                 it('should catch an error and stop', async () => {
                     const fn: any = () => {
-                        return new Promise<void>((resolve, reject) => {
+                        return new Promise<void>((_, reject) => {
                             setTimeout(() => {
                                 reject(new Error('Async error'));
                             });

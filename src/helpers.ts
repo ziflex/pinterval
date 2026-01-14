@@ -135,7 +135,7 @@ export function pipeline(
 
     return new Promise((resolve, reject) => {
         const steps = predicates.slice();
-        let data;
+        let data: any = undefined;
 
         const interval = new Interval({
             time: timeoutFn,
