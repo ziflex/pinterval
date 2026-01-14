@@ -129,20 +129,19 @@ export type RetryPredicateAsync<T> = () => Promise<T>;
 const ERR_ATTEMPT_LIMIT_EXCEEDED = 'Attempt limit exceeded';
 
 /**
- * Executes a retry mechanism for a specified predicate function until it succeeds,
- * the maximum number of attempts is reached, or the timeout is hit.
+ * Retries a given predicate function or asynchronous predicate function until a condition is met or a maximum number of attempts is reached.
  *
- * @param predicate - A synchronous or asynchronous predicate function that determines when the retry operation is successful.
- * @param attempts - The maximum number of retry attempts before giving up.
- * @param timeout - The timeout duration between each retry attempt.
- * @param start - The start mode for the retry interval ('immediate' or 'delayed').
- * @return {Promise<T>} A promise that resolves with the result from the predicate function if successful within the configured attempts and timeout. Rejects if the retry attempts are exhausted or another error occurs.
+ * @param {RetryPredicate<T> | RetryPredicateAsync<T>} predicate - The predicate function or async function to be invoked for each retry attempt. The function should return a defined result to be considered successful.
+ * @param {number} attempts - The maximum number of retry attempts before failing.
+ * @param {Duration} timeout - The duration between each retry attempt.
+ * @param {StartMode} [start='immediate'] - Determines whether the retry process starts immediately ('immediate') or after the first timeout period ('delayed').
+ * @return {Promise<T>} A promise that resolves with the result of the predicate when it succeeds or rejects if the maximum number of attempts is exceeded or an error occurs.
  */
 export function retry<T>(
     predicate: RetryPredicate<T> | RetryPredicateAsync<T>,
     attempts: number,
     timeout: Duration,
-    start: StartMode = 'delayed',
+    start: StartMode = 'immediate',
 ): Promise<T> {
     return new Promise<T>((resolve, reject) => {
         const interval = new Interval({
@@ -176,15 +175,21 @@ export type PipelinePredicate = (data: any) => void;
 export type PipelinePredicateAsync = (data: any) => Promise<void>;
 
 /**
- * Executes an array of predicates or asynchronous predicates sequentially with an optional timeout between executions.
+ * Executes a sequence of predicates asynchronously with a specified timeout between each execution.
  *
- * @param {Array<PipelinePredicate | PipelinePredicateAsync>} predicates - A sequence of functions to be executed in order. Each function can be synchronous or asynchronous.
- * @param {Duration} timeout - A duration or a function that determines the timeout between consecutive executions. If it's a constant value, it applies the same timeout for all steps. If it's a function, it receives the execution counter and defines a dynamic timeout.
- * @return {Promise<any>} A promise that resolves with the final output after all predicates have been executed, or resolves immediately if no predicates are provided.
+ * The function takes an array of predicates, either synchronous or asynchronous, and executes them in sequence.
+ * A timeout value specifies the delay between each function execution, and an optional start mode determines whether
+ * the interval should begin immediately or after the first delay.
+ *
+ * @param {Array<PipelinePredicate | PipelinePredicateAsync>} predicates - An array of functions (either synchronous or asynchronous) to execute in sequence.
+ * @param {Duration} timeout - The duration of the delay between each predicate execution.
+ * @param {StartMode} [start='immediate'] - Specifies whether the execution interval should start immediately or after the first delay.
+ * @return {Promise<any>} A promise that resolves with the result of the last predicate in the sequence, or resolves immediately if the predicates array is empty.
  */
 export function pipeline(
     predicates: Array<PipelinePredicate | PipelinePredicateAsync>,
     timeout: Duration,
+    start: StartMode = 'immediate',
 ): Promise<any> {
     if (!Array.isArray(predicates)) {
         throw new TypeError(`Expected "predicates" to by an array, but got ${typeof predicates}`);
@@ -194,20 +199,13 @@ export function pipeline(
         return Promise.resolve();
     }
 
-    const timeoutFn: Duration =
-        typeof timeout === 'function'
-            ? timeout
-            : (counter) => {
-                  // start immediately for the first call
-                  return counter > 1 ? (timeout as number) : 0;
-              };
-
     return new Promise((resolve, reject) => {
         const steps = predicates.slice();
         let data: any = undefined;
 
         const interval = new Interval({
-            time: timeoutFn,
+            start,
+            time: timeout,
             func: () => {
                 const step = steps.shift();
 
