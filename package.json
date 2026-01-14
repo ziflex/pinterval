@@ -1,6 +1,6 @@
 {
     "name": "pinterval",
-    "version": "3.4.0",
+    "version": "3.5.0",
     "description": "Advanced interval",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
