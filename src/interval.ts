@@ -44,7 +44,7 @@ export interface Params {
      * The `start` variable determines the initiation mode of a process.
      * It can be set to either:
      * - `'immediate'`: The process begins immediately without delay.
-     * - `'timeout'`: The process starts after a specified delay period.
+     * - `'delayed'`: The process starts after the first timeout.
      */
     start?: StartMode;
 
