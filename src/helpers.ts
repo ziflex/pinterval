@@ -90,7 +90,7 @@ export type TimesPredicateAsync = (counter: number) => Promise<void>;
  * the method resolves immediately without performing any executions.
  * @param {Duration} timeout - The delay duration between consecutive executions of the predicate.
  * @param {StartMode} [start='immediate'] - Determines how the interval should begin. Defaults to `'immediate'`,
- * which starts the timeout before the first execution.
+ * which executes the first invocation immediately without waiting for the timeout interval.
  * @return {Promise<void>} Resolves when the predicate has been executed the specified number of times
  * or if the specified amount is less than 0. Rejects if an error occurs during predicate execution.
  */
