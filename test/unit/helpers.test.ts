@@ -17,6 +17,56 @@ describe('Helpers', () => {
                 expect(spy.callCount).to.eq(5);
             });
         });
+
+        context('When start mode is "immediate"', () => {
+            it('should execute the first invocation immediately without delay', async () => {
+                const startTime = Date.now();
+                const spy = sinon.spy();
+
+                await poll(
+                    () => {
+                        spy();
+                        const elapsed = Date.now() - startTime;
+
+                        // First call should happen immediately (within 50ms)
+                        if (spy.callCount === 1) {
+                            expect(elapsed).to.be.lessThan(50);
+                        }
+
+                        return spy.callCount < 2;
+                    },
+                    200,
+                    'immediate',
+                );
+
+                expect(spy.callCount).to.eq(2);
+            });
+        });
+
+        context('When start mode is "delayed"', () => {
+            it('should wait for the timeout before the first execution', async () => {
+                const startTime = Date.now();
+                const spy = sinon.spy();
+
+                await poll(
+                    () => {
+                        spy();
+                        const elapsed = Date.now() - startTime;
+
+                        // First call should happen after the timeout (at least 150ms for 200ms timeout)
+                        if (spy.callCount === 1) {
+                            expect(elapsed).to.be.greaterThan(150);
+                        }
+
+                        return spy.callCount < 2;
+                    },
+                    200,
+                    'delayed',
+                );
+
+                expect(spy.callCount).to.eq(2);
+            });
+        });
     });
 
     describe('until', () => {
@@ -37,6 +87,60 @@ describe('Helpers', () => {
                 expect(data).to.eql('foo');
             });
         });
+
+        context('When start mode is "immediate"', () => {
+            it('should execute the first invocation immediately without delay', async () => {
+                const startTime = Date.now();
+                const spy = sinon.spy();
+
+                const data = await until(
+                    () => {
+                        spy();
+                        const elapsed = Date.now() - startTime;
+
+                        // First call should happen immediately (within 50ms)
+                        if (spy.callCount === 1) {
+                            expect(elapsed).to.be.lessThan(50);
+                            return 'result';
+                        }
+
+                        return undefined;
+                    },
+                    200,
+                    'immediate',
+                );
+
+                expect(spy.callCount).to.eq(1);
+                expect(data).to.eq('result');
+            });
+        });
+
+        context('When start mode is "delayed"', () => {
+            it('should wait for the timeout before the first execution', async () => {
+                const startTime = Date.now();
+                const spy = sinon.spy();
+
+                const data = await until(
+                    () => {
+                        spy();
+                        const elapsed = Date.now() - startTime;
+
+                        // First call should happen after the timeout (at least 150ms for 200ms timeout)
+                        if (spy.callCount === 1) {
+                            expect(elapsed).to.be.greaterThan(150);
+                            return 'result';
+                        }
+
+                        return undefined;
+                    },
+                    200,
+                    'delayed',
+                );
+
+                expect(spy.callCount).to.eq(1);
+                expect(data).to.eq('result');
+            });
+        });
     });
 
     describe('times', () => {
@@ -55,6 +159,58 @@ describe('Helpers', () => {
                 await times(() => spy(), 5, 200);
 
                 expect(spy.callCount).to.eq(5);
+            });
+        });
+
+        context('When start mode is "immediate"', () => {
+            it('should execute the first invocation immediately without delay', async () => {
+                const startTime = Date.now();
+                const spy = sinon.spy();
+
+                await times(
+                    (counter) => {
+                        spy(counter);
+                        const elapsed = Date.now() - startTime;
+
+                        // First call should happen immediately (within 50ms)
+                        if (counter === 1) {
+                            expect(elapsed).to.be.lessThan(50);
+                        }
+                    },
+                    2,
+                    200,
+                    'immediate',
+                );
+
+                expect(spy.callCount).to.eq(2);
+                expect(spy.args[0][0]).to.eq(1);
+                expect(spy.args[1][0]).to.eq(2);
+            });
+        });
+
+        context('When start mode is "delayed"', () => {
+            it('should wait for the timeout before the first execution', async () => {
+                const startTime = Date.now();
+                const spy = sinon.spy();
+
+                await times(
+                    (counter) => {
+                        spy(counter);
+                        const elapsed = Date.now() - startTime;
+
+                        // First call should happen after the timeout (at least 150ms for 200ms timeout)
+                        if (counter === 1) {
+                            expect(elapsed).to.be.greaterThan(150);
+                        }
+                    },
+                    2,
+                    200,
+                    'delayed',
+                );
+
+                expect(spy.callCount).to.eq(2);
+                expect(spy.args[0][0]).to.eq(1);
+                expect(spy.args[1][0]).to.eq(2);
             });
         });
     });
