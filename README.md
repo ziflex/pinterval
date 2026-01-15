@@ -1065,7 +1065,7 @@ async function connectToDatabase(config: DbConfig) {
                 console.log('✓ Database connected');
                 return connection;
             } catch (error) {
-                console.log(`✗ Connection failed: ${error.message}, retrying...`);
+                console.log(`✗ Connection failed (attempt ${attempt}): ${error.message}, retrying...`);
                 return undefined;
             }
         },
