@@ -78,6 +78,10 @@ describe('Helpers', () => {
                 );
 
                 expect(spy.callCount).to.eq(5);
+                expect(spy.args[0][0]).to.eq(1);
+                expect(spy.args[1][0]).to.eq(2);
+                expect(spy.args[2][0]).to.eq(3);
+                expect(spy.args[3][0]).to.eq(4);
                 expect(spy.args[4][0]).to.eq(5);
                 expect(data).to.eql('foo');
             });
