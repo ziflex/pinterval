@@ -401,7 +401,7 @@ import { retry } from 'pinterval';
 
 // Retry up to 5 times with 2 second intervals
 const result = await retry(
-    async () => {
+    async (attempt) => {
         const response = await fetch('/api/resource');
         if (response.ok) {
             return await response.json();
@@ -416,7 +416,7 @@ const result = await retry(
 **Signature:**
 ```typescript
 function retry<T>(
-    predicate: () => T | Promise<T>,
+    predicate: (attempt: number) => T | Promise<T>,
     attempts: number,
     timeout: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
@@ -425,7 +425,7 @@ function retry<T>(
 
 **Parameters:**
 
-- **predicate** - Function to retry. Return `undefined` to retry, or a value to resolve
+- **predicate** - Function to retry that receives the current attempt number. Return `undefined` to retry, or a value to resolve
 - **attempts** - Maximum number of retry attempts
 - **timeout** - Interval between retries
 - **start** - Start mode: `'immediate'` (default) or `'delayed'`
@@ -436,7 +436,7 @@ function retry<T>(
 import { retry, duration } from 'pinterval';
 
 const result = await retry(
-    async () => {
+    async (attempt) => {
         try {
             return await fetchData();
         } catch {
@@ -641,7 +641,7 @@ import { retry, duration } from 'pinterval';
 
 // Exponential backoff for retries
 const result = await retry(
-    async () => await fetchData(),
+    async (attempt) => await fetchData(),
     10,
     duration.exponential(100, 10000)
 );
@@ -859,7 +859,7 @@ import { retry, duration } from 'pinterval';
 
 // Aggressive at first, then back off
 const result = await retry(
-    async () => await fetchData(),
+    async (attempt) => await fetchData(),
     20,
     duration.steps([
         { threshold: 0, duration: 100 },   // First 3 attempts: fast (100ms)
@@ -956,7 +956,7 @@ async function fetchWithRetry(url: string) {
     // Try primary endpoint with exponential backoff
     try {
         return await retry(
-            async () => {
+            async (attempt) => {
                 const response = await fetch(url);
                 if (!response.ok) return undefined;
                 return await response.json();
@@ -970,7 +970,7 @@ async function fetchWithRetry(url: string) {
         
         // Fall back to backup endpoint with linear backoff
         return await retry(
-            async () => {
+            async (attempt) => {
                 const response = await fetch(url.replace('api', 'api-backup'));
                 if (!response.ok) return undefined;
                 return await response.json();
@@ -1058,14 +1058,14 @@ async function connectToDatabase(config: DbConfig) {
     console.log('Attempting to connect to database...');
     
     return await retry(
-        async () => {
+        async (attempt) => {
             try {
                 const connection = await createConnection(config);
                 await connection.ping();
                 console.log('✓ Database connected');
                 return connection;
             } catch (error) {
-                console.log(`✗ Connection failed: ${error.message}, retrying...`);
+                console.log(`✗ Connection failed (attempt ${attempt}): ${error.message}, retrying...`);
                 return undefined;
             }
         },
@@ -1225,7 +1225,7 @@ interface ApiResponse {
 }
 
 const result = await retry<ApiResponse>(
-    async () => {
+    async (attempt) => {
         const response = await fetch('/api/data');
         if (!response.ok) return undefined;
         return await response.json();
@@ -1307,7 +1307,7 @@ intervalId = setInterval(async () => {
 import { retry } from 'pinterval';
 
 try {
-    await retry(async () => {
+    await retry(async (attempt) => {
         const response = await fetch('/api/status');
         const data = await response.json();
         return data.ready ? data : undefined;
