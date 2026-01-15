@@ -64,8 +64,8 @@ describe('Helpers', () => {
             it('should stop and return the value', async () => {
                 const spy = sinon.spy();
                 const data = await retry(
-                    () => {
-                        spy();
+                    (counter) => {
+                        spy(counter);
 
                         if (spy.callCount < 5) {
                             return undefined;
@@ -78,6 +78,11 @@ describe('Helpers', () => {
                 );
 
                 expect(spy.callCount).to.eq(5);
+                expect(spy.args[0][0]).to.eq(1);
+                expect(spy.args[1][0]).to.eq(2);
+                expect(spy.args[2][0]).to.eq(3);
+                expect(spy.args[3][0]).to.eq(4);
+                expect(spy.args[4][0]).to.eq(5);
                 expect(data).to.eql('foo');
             });
         });
@@ -88,8 +93,8 @@ describe('Helpers', () => {
 
                 try {
                     await retry(
-                        () => {
-                            spy();
+                        (counter) => {
+                            spy(counter);
                             return undefined;
                         },
                         5,
@@ -98,6 +103,7 @@ describe('Helpers', () => {
                     throw new Error('Expected attempt to reject');
                 } catch (err: any) {
                     expect(spy.callCount).to.eq(5);
+                    expect(spy.args[4][0]).to.eq(5);
                     expect(err).to.be.instanceOf(Error);
                     expect(err.message).to.eq('Attempt limit exceeded');
                 }

@@ -124,8 +124,8 @@ export function times(
     });
 }
 
-export type RetryPredicate<T> = () => T;
-export type RetryPredicateAsync<T> = () => Promise<T>;
+export type RetryPredicate<T> = (attempt: number) => T;
+export type RetryPredicateAsync<T> = (attempt: number) => Promise<T>;
 const ERR_ATTEMPT_LIMIT_EXCEEDED = 'Attempt limit exceeded';
 
 /**
@@ -152,7 +152,7 @@ export function retry<T>(
                     return Promise.reject(new Error(ERR_ATTEMPT_LIMIT_EXCEEDED));
                 }
 
-                return Promise.resolve(predicate()).then((out: T) => {
+                return Promise.resolve(predicate(counter)).then((out: T) => {
                     // if result is not available, continue polling
                     if (typeof out === 'undefined') {
                         return true;
