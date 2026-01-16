@@ -177,11 +177,15 @@ export class Interval {
             return;
         }
 
-        const result = await this.__onError(err);
+        try {
+            const result = await this.__onError(err);
 
-        if (result === true) {
-            this.__enqueue();
-        } else {
+            if (result === true) {
+                this.__enqueue();
+            } else {
+                this.stop();
+            }
+        } catch {
             this.stop();
         }
     }
