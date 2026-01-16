@@ -1,5 +1,3 @@
-import isPromise from 'is-promise';
-
 const ERR_START = 'Interval is already running';
 const ERR_STOP = 'Interval is already stoped';
 const ERR_MISSED_PARAMS = 'Parameters are required';
@@ -145,7 +143,7 @@ export class Interval {
         setTimeout(() => this.__call(), duration);
     }
 
-    private __call(): void {
+    private async __call(): Promise<void> {
         if (!this.__isRunning) {
             return;
         }
@@ -153,41 +151,21 @@ export class Interval {
         const func = this.__func;
 
         try {
-            const out = func(this.__counter);
+            const result = await func(this.__counter);
 
-            if (!isPromise(out)) {
-                if (out !== false) {
-                    this.__enqueue();
-
-                    return;
-                }
-
-                this.stop();
+            if (result !== false) {
+                this.__enqueue();
 
                 return;
             }
 
-            (out as Promise<boolean | undefined>)
-                .then((result: boolean | undefined) => {
-                    if (result !== false) {
-                        this.__enqueue();
-
-                        return;
-                    }
-
-                    this.stop();
-                })
-                .catch((err) => {
-                    this.__handleError(err);
-
-                    return null;
-                });
+            this.stop();
         } catch (e) {
-            this.__handleError(e as Error);
+            await this.__handleError(e as Error);
         }
     }
 
-    private __handleError(err: Error): void {
+    private async __handleError(err: Error): Promise<void> {
         if (!this.__isRunning) {
             // interval was stopped
             return;
@@ -199,30 +177,16 @@ export class Interval {
             return;
         }
 
-        const out = this.__onError(err);
+        try {
+            const result = await this.__onError(err);
 
-        if (!isPromise(out)) {
-            if (out === true) {
+            if (result === true) {
                 this.__enqueue();
             } else {
                 this.stop();
             }
-
-            return;
+        } catch {
+            this.stop();
         }
-
-        (out as Promise<boolean>)
-            .then((res: boolean) => {
-                if (res === true) {
-                    this.__enqueue();
-                } else {
-                    this.stop();
-                }
-            })
-            .catch(() => {
-                this.stop();
-
-                return null;
-            });
     }
 }

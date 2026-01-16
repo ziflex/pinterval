@@ -20,16 +20,16 @@ export function poll(
         const interval = new Interval({
             start,
             time: timeout,
-            func: () => {
-                return Promise.resolve(predicate()).then((out) => {
-                    if (out === true) {
-                        return true;
-                    }
+            func: async () => {
+                const out = await predicate();
 
-                    resolve();
+                if (out === true) {
+                    return true;
+                }
 
-                    return false;
-                });
+                resolve();
+
+                return false;
             },
             onError: reject,
         });
@@ -58,18 +58,18 @@ export function until<T>(
         const interval = new Interval({
             start,
             time: timeout,
-            func: () => {
-                return Promise.resolve(predicate()).then((out: T) => {
-                    // if result is not available, continue polling
-                    if (typeof out === 'undefined') {
-                        return true;
-                    }
+            func: async () => {
+                const out = await predicate();
 
-                    // when result finally is available, stop polling
-                    resolve(out);
+                // if result is not available, continue polling
+                if (typeof out === 'undefined') {
+                    return true;
+                }
 
-                    return false;
-                });
+                // when result finally is available, stop polling
+                resolve(out);
+
+                return false;
             },
             onError: reject,
         });
@@ -108,14 +108,16 @@ export function times(
         const interval = new Interval({
             start,
             time: timeout,
-            func: (counter) => {
+            func: async (counter) => {
                 if (counter > amount) {
                     resolve();
 
-                    return Promise.resolve(false);
+                    return false;
                 }
 
-                return Promise.resolve(predicate(counter)).then(() => true);
+                await predicate(counter);
+
+                return true;
             },
             onError: reject,
         });
@@ -147,22 +149,22 @@ export function retry<T>(
         const interval = new Interval({
             start,
             time: timeout,
-            func: (counter) => {
+            func: async (counter) => {
                 if (counter > attempts) {
                     return Promise.reject(new Error(ERR_ATTEMPT_LIMIT_EXCEEDED));
                 }
 
-                return Promise.resolve(predicate(counter)).then((out: T) => {
-                    // if result is not available, continue polling
-                    if (typeof out === 'undefined') {
-                        return true;
-                    }
+                const out = await predicate(counter);
 
-                    // when result finally is available, stop polling
-                    resolve(out);
+                // if result is not available, continue polling
+                if (typeof out === 'undefined') {
+                    return true;
+                }
 
-                    return false;
-                });
+                // when result finally is available, stop polling
+                resolve(out);
+
+                return false;
             },
             onError: reject,
         });
@@ -206,14 +208,18 @@ export function pipeline(
         const interval = new Interval({
             start,
             time: timeout,
-            func: () => {
+            func: async () => {
                 const step = steps.shift();
 
                 if (!step) {
-                    return Promise.resolve(false).finally(() => resolve(data));
+                    resolve(data);
+
+                    return false;
                 }
 
-                return Promise.resolve(step(data)).then((out) => (data = out));
+                data = await step(data);
+
+                return true;
             },
             onError: reject,
         });
