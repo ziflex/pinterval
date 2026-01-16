@@ -319,12 +319,12 @@ pinterval provides several high-level helper functions for common patterns. All 
 
 ### poll
 
-Repeatedly checks a condition until it returns `true`. Perfect for waiting on asynchronous operations.
+Repeatedly checks a condition until it returns `true`. Perfect for waiting on asynchronous operations. By default, the first check happens immediately.
 
 ```typescript
 import { poll } from 'pinterval';
 
-// Wait for a condition to be true
+// Wait for a condition to be true (checks immediately, then every 1 second)
 await poll(async () => {
     const status = await checkStatus();
     return status === 'ready';
@@ -346,27 +346,37 @@ function poll(
 
 - **predicate** - Function that returns `true` when condition is met
 - **timeout** - Interval duration in milliseconds or duration function
-- **start** - Start mode: `'delayed'` (default) or `'immediate'`
+- **start** - Start mode: `'immediate'` (default) or `'delayed'`
 
 **Example with immediate start:**
 
 ```typescript
-// Check immediately, then every 5 seconds
+// Check immediately, then every 5 seconds (default behavior)
+await poll(
+    async () => (await fetch('/api/status')).ok,
+    5000
+);
+```
+
+**Example with delayed start:**
+
+```typescript
+// Wait 5 seconds before first check, then every 5 seconds
 await poll(
     async () => (await fetch('/api/status')).ok,
     5000,
-    'immediate'
+    'delayed'
 );
 ```
 
 ### until
 
-Similar to `poll`, but returns the value from the predicate once it's defined (not `undefined`).
+Similar to `poll`, but returns the value from the predicate once it's defined (not `undefined`). By default, the first check happens immediately.
 
 ```typescript
 import { until } from 'pinterval';
 
-// Wait until we get actual data
+// Wait until we get actual data (checks immediately, then every 2 seconds)
 const data = await until(async () => {
     const response = await fetch('/api/data');
     if (!response.ok) return undefined;
@@ -386,6 +396,12 @@ function until<T>(
     start?: 'immediate' | 'delayed'
 ): Promise<T>
 ```
+
+**Parameters:**
+
+- **predicate** - Function that returns a value when condition is met, or `undefined` to continue polling
+- **timeout** - Interval duration in milliseconds or duration function
+- **start** - Start mode: `'immediate'` (default) or `'delayed'`
 
 **Key Difference from poll:**
 
@@ -450,12 +466,12 @@ const result = await retry(
 
 ### times
 
-Executes a function a specific number of times with an interval between executions.
+Executes a function a specific number of times with an interval between executions. By default, the first execution happens immediately.
 
 ```typescript
 import { times } from 'pinterval';
 
-// Execute 5 times with 1 second between executions
+// Execute immediately, then 4 more times with 1 second between executions
 await times(
     async (counter) => {
         console.log(`Execution ${counter}`);
@@ -483,7 +499,7 @@ function times(
 - **predicate** - Function to execute. Receives counter (1-based) as parameter
 - **amount** - Number of times to execute
 - **timeout** - Interval between executions
-- **start** - Start mode: `'delayed'` (default) or `'immediate'`
+- **start** - Start mode: `'immediate'` (default) or `'delayed'`
 
 ### pipeline
 
@@ -1389,17 +1405,22 @@ class MyComponent {
 }
 ```
 
-### 5. Use Immediate Start When Appropriate
+### 5. Choose Between Immediate and Delayed Start
 
-For retries and initial checks, use `'immediate'` start mode:
+The default start mode is now `'immediate'` for most helper functions, which is ideal for most use cases:
 
 ```typescript
-// ✅ Good: Check immediately, then retry
-await retry(fetchData, 5, 2000, 'immediate');
+// ✅ Default behavior: Check immediately, then retry
+await poll(checkStatus, 1000); // Immediate by default
 
-// ❌ Less ideal: Unnecessary wait before first attempt
-await retry(fetchData, 5, 2000, 'delayed');
+// Use 'delayed' when you specifically want to wait before the first execution
+await poll(checkStatus, 1000, 'delayed'); // Wait 1s before first check
 ```
+
+**When to use 'delayed' mode:**
+- When you need rate limiting from the very first execution
+- When polling a resource that you know won't be ready immediately
+- When you want consistent timing between all executions
 
 ### 6. Test with Shorter Intervals
 

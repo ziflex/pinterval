@@ -8,13 +8,13 @@ export type PollPredicateAsync = () => Promise<boolean>;
  *
  * @param {PollPredicate | PollPredicateAsync} predicate - The function to evaluate. Can be synchronous or asynchronous.
  * @param {Duration} timeout - The duration for which the polling continues.
- * @param {StartMode} [start='delayed'] - Determines when the polling interval starts. Default is 'delayed'.
+ * @param {StartMode} [start='immediate'] - Determines when the polling interval starts. Default is 'immediate'.
  * @return {Promise<void>} A promise that resolves when the predicate returns `true` or rejects if an error occurs in the process.
  */
 export function poll(
     predicate: PollPredicate | PollPredicateAsync,
     timeout: Duration,
-    start: StartMode = 'delayed',
+    start: StartMode = 'immediate',
 ): Promise<void> {
     return new Promise((resolve, reject) => {
         const interval = new Interval({
@@ -46,13 +46,13 @@ export type UntilPredicateAsync<T> = () => Promise<T>;
  *
  * @param {UntilPredicate<T> | UntilPredicateAsync<T>} predicate - A function or asynchronous function that evaluates the condition to be met. The function should return the desired value once the condition is met or undefined if the condition is not met yet.
  * @param {Duration} timeout - The maximum duration for which the polling should continue before timing out.
- * @param {StartMode} [start='delayed'] - Determines whether the polling starts immediately or with a delay. Defaults to 'delayed'.
+ * @param {StartMode} [start='immediate'] - Determines whether the polling starts immediately or with a delay. Defaults to 'immediate'.
  * @return {Promise<T>} A promise that resolves with the value returned by the predicate when its condition is met or rejects if an error occurs.
  */
 export function until<T>(
     predicate: UntilPredicate<T> | UntilPredicateAsync<T>,
     timeout: Duration,
-    start: StartMode = 'delayed',
+    start: StartMode = 'immediate',
 ): Promise<T> {
     return new Promise<T>((resolve, reject) => {
         const interval = new Interval({
@@ -89,8 +89,8 @@ export type TimesPredicateAsync = (counter: number) => Promise<void>;
  * @param {number} amount - The number of times the predicate should be executed. If set to a value less than 0,
  * the method resolves immediately without performing any executions.
  * @param {Duration} timeout - The delay duration between consecutive executions of the predicate.
- * @param {StartMode} [start='delayed'] - Determines how the interval should begin. Defaults to `'delayed'`,
- * which starts the timeout before the first execution.
+ * @param {StartMode} [start='immediate'] - Determines how the interval should begin. Defaults to `'immediate'`,
+ * which executes the first invocation immediately without waiting for the timeout interval.
  * @return {Promise<void>} Resolves when the predicate has been executed the specified number of times
  * or if the specified amount is less than 0. Rejects if an error occurs during predicate execution.
  */
@@ -98,7 +98,7 @@ export function times(
     predicate: TimesPredicate | TimesPredicateAsync,
     amount: number,
     timeout: Duration,
-    start: StartMode = 'delayed',
+    start: StartMode = 'immediate',
 ): Promise<void> {
     if (amount < 0) {
         return Promise.resolve();
