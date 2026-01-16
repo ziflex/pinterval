@@ -112,7 +112,7 @@ export function times(
                 if (counter > amount) {
                     resolve();
 
-                    return Promise.resolve(false);
+                    return false;
                 }
 
                 await predicate(counter);
