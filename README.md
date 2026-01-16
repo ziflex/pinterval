@@ -52,7 +52,7 @@ A powerful and flexible interval management library that goes beyond JavaScript'
 - ✅ **Rich Helper Functions** - Pre-built utilities for common patterns (polling, retries, pipelines)
 - ✅ **Backoff Strategies** - Multiple built-in duration functions for sophisticated retry logic
 - ✅ **TypeScript First** - Full TypeScript support with comprehensive type definitions
-- ✅ **Zero Dependencies** - Minimal footprint with only one tiny dependency
+- ✅ **Zero Dependencies** - Minimal footprint with absolutely no dependencies
 - ✅ **Production Ready** - Battle-tested and actively maintained
 
 ## Installation
