@@ -320,6 +320,56 @@ describe('Interval', () => {
                 });
             });
         });
+
+        context('When error handler itself throws an error', () => {
+            it('should stop the interval (sync error handler)', async () => {
+                const interval = new Interval({
+                    func: () => {
+                        throw new Error('Test error');
+                    },
+                    onError: () => {
+                        throw new Error('Error handler failed');
+                    },
+                    time: 200,
+                });
+
+                interval.start();
+                await sleep(220);
+                expect(interval.isRunning, 'isRunning').to.be.false;
+            });
+
+            it('should stop the interval (async error handler)', async () => {
+                const interval = new Interval({
+                    func: () => {
+                        throw new Error('Test error');
+                    },
+                    onError: async () => {
+                        throw new Error('Error handler failed');
+                    },
+                    time: 200,
+                });
+
+                interval.start();
+                await sleep(220);
+                expect(interval.isRunning, 'isRunning').to.be.false;
+            });
+
+            it('should stop the interval (async error handler with rejected promise)', async () => {
+                const interval = new Interval({
+                    func: () => {
+                        throw new Error('Test error');
+                    },
+                    onError: () => {
+                        return Promise.reject(new Error('Error handler failed'));
+                    },
+                    time: 200,
+                });
+
+                interval.start();
+                await sleep(220);
+                expect(interval.isRunning, 'isRunning').to.be.false;
+            });
+        });
     });
 
     describe('Start modes', () => {
