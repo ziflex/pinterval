@@ -39,9 +39,7 @@
         "url": "https://github.com/ziflex/pinterval/issues"
     },
     "homepage": "https://github.com/ziflex/pinterval#readme",
-    "dependencies": {
-        "is-promise": "^4.0.0"
-    },
+    "dependencies": {},
     "devDependencies": {
         "@eslint/js": "^9.39.2",
         "@types/chai": "^5.2.3",
