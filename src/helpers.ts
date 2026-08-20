@@ -1,7 +1,8 @@
 import { createCancellationScope, getAbortReason } from './cancellation';
-import { Duration, Interval, StartMode } from './interval';
+import { Duration, Interval, IntervalContext, StartMode } from './interval';
 
-export interface HelperOptions {
+/** Shared scheduling and lifecycle options for finite helpers. */
+export interface ExecutionOptions {
     /** Delay between executions, in milliseconds or as a counter-based duration function. */
     time: Duration;
 
@@ -15,13 +16,46 @@ export interface HelperOptions {
     timeout?: number;
 }
 
-export interface RetryOptions extends HelperOptions {
-    /** Maximum number of attempts. */
-    attempts: number;
+/** @deprecated Use {@link ExecutionOptions}. */
+export type HelperOptions = ExecutionOptions;
+
+/** Accepts or rejects a value produced by {@link until}. */
+export type UntilCondition<T> = (value: T, context: IntervalContext) => boolean | Promise<boolean>;
+
+export interface UntilOptions<T> extends ExecutionOptions {
+    /** Determines whether a returned value completes the helper. */
+    predicate: UntilCondition<T>;
 }
 
-export interface TimesOptions extends HelperOptions {
-    /** Number of times to execute the predicate. */
+export interface RetryContext {
+    /** The current attempt number, starting at 1. */
+    readonly attempt: number;
+
+    /** Wall-clock milliseconds since the retry operation started. */
+    readonly elapsed: number;
+
+    /** The effective signal, including external cancellation and the overall timeout. */
+    readonly signal: AbortSignal;
+}
+
+/** Determines whether a failed operation should be retried. */
+export type RetryCondition = (error: unknown, context: RetryContext) => boolean | Promise<boolean>;
+/** Observes a failure that has been accepted for another attempt. */
+export type RetryHook = (error: unknown, context: RetryContext) => void | Promise<void>;
+
+export interface RetryOptions extends ExecutionOptions {
+    /** Maximum total number of executions. Must be a positive integer. */
+    attempts: number;
+
+    /** Determines whether a failed operation should be attempted again. Defaults to `true`. */
+    retryIf?: RetryCondition;
+
+    /** Runs after a failure is accepted for retry and before the next delay is scheduled. */
+    onRetry?: RetryHook;
+}
+
+export interface TimesOptions extends ExecutionOptions {
+    /** Number of times to execute the operation. Must be a non-negative integer. */
     amount: number;
 }
 
@@ -30,14 +64,34 @@ export interface SleepOptions {
     signal?: AbortSignal;
 }
 
-interface NormalizedHelperOptions extends HelperOptions {
+interface NormalizedExecutionOptions extends ExecutionOptions {
     start: StartMode;
 }
 
-type Complete<T> = (value: T) => void;
-type FiniteIntervalFunction<T> = (counter: number, complete: Complete<T>) => boolean | void | Promise<boolean | void>;
+interface NormalizedUntilOptions<T> extends NormalizedExecutionOptions {
+    predicate: UntilCondition<T>;
+}
 
-function normalizeHelperOptions(timeOrOptions: Duration | HelperOptions, start: StartMode): NormalizedHelperOptions {
+interface NormalizedRetryOptions extends NormalizedExecutionOptions {
+    attempts: number;
+    retryIf?: RetryCondition;
+    onRetry?: RetryHook;
+}
+
+interface NormalizedTimesOptions extends NormalizedExecutionOptions {
+    amount: number;
+}
+
+type Complete<T> = (value: T) => void;
+type FiniteIntervalFunction<T> = (
+    context: IntervalContext,
+    complete: Complete<T>,
+) => boolean | void | Promise<boolean | void>;
+
+function normalizeExecutionOptions(
+    timeOrOptions: Duration | ExecutionOptions,
+    start: StartMode,
+): NormalizedExecutionOptions {
     if (typeof timeOrOptions === 'number' || typeof timeOrOptions === 'function') {
         return {
             time: timeOrOptions,
@@ -51,11 +105,30 @@ function normalizeHelperOptions(timeOrOptions: Duration | HelperOptions, start: 
     };
 }
 
+function normalizeUntilOptions<T>(
+    predicateOrOptions: UntilCondition<T> | UntilOptions<T>,
+    time: Duration | undefined,
+    start: StartMode,
+): NormalizedUntilOptions<T> {
+    if (typeof predicateOrOptions === 'function') {
+        return {
+            predicate: predicateOrOptions,
+            time: time as Duration,
+            start,
+        };
+    }
+
+    return {
+        ...predicateOrOptions,
+        start: predicateOrOptions.start ?? 'immediate',
+    };
+}
+
 function normalizeRetryOptions(
     attemptsOrOptions: number | RetryOptions,
     time: Duration | undefined,
     start: StartMode,
-): NormalizedHelperOptions & Pick<RetryOptions, 'attempts'> {
+): NormalizedRetryOptions {
     if (typeof attemptsOrOptions === 'number') {
         return {
             attempts: attemptsOrOptions,
@@ -74,7 +147,7 @@ function normalizeTimesOptions(
     amountOrOptions: number | TimesOptions,
     time: Duration | undefined,
     start: StartMode,
-): NormalizedHelperOptions & Pick<TimesOptions, 'amount'> {
+): NormalizedTimesOptions {
     if (typeof amountOrOptions === 'number') {
         return {
             amount: amountOrOptions,
@@ -97,7 +170,7 @@ function resolveImmediately<T>(value: T, signal?: AbortSignal): Promise<T> {
     return Promise.resolve(value);
 }
 
-function runFiniteInterval<T>(options: NormalizedHelperOptions, func: FiniteIntervalFunction<T>): Promise<T> {
+function runFiniteInterval<T>(options: NormalizedExecutionOptions, func: FiniteIntervalFunction<T>): Promise<T> {
     const cancellation = createCancellationScope(options.signal, options.timeout);
     const signal = cancellation.signal;
 
@@ -133,7 +206,7 @@ function runFiniteInterval<T>(options: NormalizedHelperOptions, func: FiniteInte
                 start: options.start,
                 time: options.time,
                 signal,
-                func: async ({ iteration }) => func(iteration, complete),
+                func: async (context) => func(context, complete),
                 onError: fail,
             });
 
@@ -151,138 +224,209 @@ function runFiniteInterval<T>(options: NormalizedHelperOptions, func: FiniteInte
     });
 }
 
-export type PollPredicate = () => boolean;
-export type PollPredicateAsync = () => Promise<boolean>;
+/** Produces `true` when polling should complete and `false` when it should continue. */
+export type PollCondition = (context: IntervalContext) => boolean | Promise<boolean>;
+/** @deprecated Use {@link PollCondition}. */
+export type PollPredicate = (context: IntervalContext) => boolean;
+/** @deprecated Use {@link PollCondition}. */
+export type PollPredicateAsync = (context: IntervalContext) => Promise<boolean>;
 
 /**
- * Repeatedly evaluates a predicate while it resolves to `true`, completing when it resolves to `false`.
+ * Repeatedly evaluates a condition until it resolves to `true`. Condition errors propagate unchanged.
  */
-export function poll(predicate: PollPredicate | PollPredicateAsync, time: Duration, start?: StartMode): Promise<void>;
-export function poll(predicate: PollPredicate | PollPredicateAsync, options: HelperOptions): Promise<void>;
+export function poll(condition: PollCondition, time: Duration, start?: StartMode): Promise<void>;
+export function poll(condition: PollCondition, options: ExecutionOptions): Promise<void>;
 export function poll(
-    predicate: PollPredicate | PollPredicateAsync,
-    timeOrOptions: Duration | HelperOptions,
+    condition: PollCondition,
+    timeOrOptions: Duration | ExecutionOptions,
     start: StartMode = 'immediate',
 ): Promise<void> {
-    const options = normalizeHelperOptions(timeOrOptions, start);
+    const options = normalizeExecutionOptions(timeOrOptions, start);
 
-    return runFiniteInterval<void>(options, async (_counter, complete) => {
-        const out = await predicate();
+    return runFiniteInterval<void>(options, async (context, complete) => {
+        const satisfied = await condition(context);
 
-        if (out === true) {
-            return true;
+        if (context.signal.aborted) {
+            return false;
         }
 
-        complete(undefined);
+        if (satisfied) {
+            complete(undefined);
 
-        return false;
+            return false;
+        }
+
+        return true;
     });
 }
 
-export type UntilPredicate<T> = () => T;
-export type UntilPredicateAsync<T> = () => Promise<T>;
+/** Produces the next value for {@link until} to inspect. */
+export type UntilSource<T> = (context: IntervalContext) => T | Promise<T>;
+/** @deprecated Use {@link UntilSource}. */
+export type UntilPredicate<T> = (context: IntervalContext) => T;
+/** @deprecated Use {@link UntilSource}. */
+export type UntilPredicateAsync<T> = (context: IntervalContext) => Promise<T>;
 
 /**
- * Repeatedly evaluates a predicate until it resolves to a defined value.
+ * Repeatedly evaluates a source until its result is accepted by a predicate.
+ *
+ * Every returned value, including `undefined` and other falsy values, is passed to the predicate. Source and predicate
+ * errors propagate unchanged.
  */
 export function until<T>(
-    predicate: UntilPredicate<T> | UntilPredicateAsync<T>,
+    source: UntilSource<T>,
+    predicate: UntilCondition<T>,
     time: Duration,
     start?: StartMode,
 ): Promise<T>;
-export function until<T>(predicate: UntilPredicate<T> | UntilPredicateAsync<T>, options: HelperOptions): Promise<T>;
+export function until<T>(source: UntilSource<T>, options: UntilOptions<T>): Promise<T>;
 export function until<T>(
-    predicate: UntilPredicate<T> | UntilPredicateAsync<T>,
-    timeOrOptions: Duration | HelperOptions,
+    source: UntilSource<T>,
+    predicateOrOptions: UntilCondition<T> | UntilOptions<T>,
+    time?: Duration,
     start: StartMode = 'immediate',
 ): Promise<T> {
-    const options = normalizeHelperOptions(timeOrOptions, start);
+    const options = normalizeUntilOptions(predicateOrOptions, time, start);
 
-    return runFiniteInterval<T>(options, async (_counter, complete) => {
-        const out = await predicate();
+    return runFiniteInterval<T>(options, async (context, complete) => {
+        const value = await source(context);
 
-        if (typeof out === 'undefined') {
-            return true;
+        if (context.signal.aborted) {
+            return false;
         }
 
-        complete(out);
+        const satisfied = await options.predicate(value, context);
 
-        return false;
+        if (context.signal.aborted) {
+            return false;
+        }
+
+        if (satisfied) {
+            complete(value);
+
+            return false;
+        }
+
+        return true;
     });
 }
 
-export type TimesPredicate = (counter: number) => void;
-export type TimesPredicateAsync = (counter: number) => Promise<void>;
+/** Performs one sequential execution for {@link times}. */
+export type TimesOperation = (context: IntervalContext) => void | Promise<void>;
+/** @deprecated Use {@link TimesOperation}. */
+export type TimesPredicate = (context: IntervalContext) => void;
+/** @deprecated Use {@link TimesOperation}. */
+export type TimesPredicateAsync = (context: IntervalContext) => Promise<void>;
 
 /**
- * Executes a function a specified number of times with a delay between executions.
+ * Executes an operation sequentially a specified number of times with a delay between executions.
  */
+export function times(operation: TimesOperation, amount: number, time: Duration, start?: StartMode): Promise<void>;
+export function times(operation: TimesOperation, options: TimesOptions): Promise<void>;
 export function times(
-    predicate: TimesPredicate | TimesPredicateAsync,
-    amount: number,
-    time: Duration,
-    start?: StartMode,
-): Promise<void>;
-export function times(predicate: TimesPredicate | TimesPredicateAsync, options: TimesOptions): Promise<void>;
-export function times(
-    predicate: TimesPredicate | TimesPredicateAsync,
+    operation: TimesOperation,
     amountOrOptions: number | TimesOptions,
     time?: Duration,
     start: StartMode = 'immediate',
 ): Promise<void> {
     const options = normalizeTimesOptions(amountOrOptions, time, start);
 
-    if (options.amount < 0) {
+    if (!Number.isInteger(options.amount) || options.amount < 0) {
+        return Promise.reject(new RangeError('"amount" must be a non-negative integer'));
+    }
+
+    if (options.amount === 0) {
         return resolveImmediately(undefined, options.signal);
     }
 
-    return runFiniteInterval<void>(options, async (counter, complete) => {
-        if (counter > options.amount) {
+    return runFiniteInterval<void>(options, async (context, complete) => {
+        await operation(context);
+
+        if (context.signal.aborted) {
+            return false;
+        }
+
+        if (context.iteration === options.amount) {
             complete(undefined);
 
             return false;
         }
 
-        await predicate(counter);
-
         return true;
     });
 }
 
-export type RetryPredicate<T> = (attempt: number) => T;
-export type RetryPredicateAsync<T> = (attempt: number) => Promise<T>;
-const ERR_ATTEMPT_LIMIT_EXCEEDED = 'Attempt limit exceeded';
+/** Performs one execution for {@link retry}. Any normal return value is successful. */
+export type RetryOperation<T> = (context: RetryContext) => T | Promise<T>;
+/** @deprecated Use {@link RetryOperation}. */
+export type RetryPredicate<T> = (context: RetryContext) => T;
+/** @deprecated Use {@link RetryOperation}. */
+export type RetryPredicateAsync<T> = (context: RetryContext) => Promise<T>;
 
 /**
- * Retries a predicate until it returns a defined value or the attempt limit is exceeded.
+ * Repeatedly executes an operation while it throws or rejects.
+ *
+ * `attempts` is the maximum total execution count. Any normal return value is successful, and exhaustion rejects with
+ * the final operation error unchanged.
  */
+export function retry<T>(operation: RetryOperation<T>, attempts: number, time: Duration, start?: StartMode): Promise<T>;
+export function retry<T>(operation: RetryOperation<T>, options: RetryOptions): Promise<T>;
 export function retry<T>(
-    predicate: RetryPredicate<T> | RetryPredicateAsync<T>,
-    attempts: number,
-    time: Duration,
-    start?: StartMode,
-): Promise<T>;
-export function retry<T>(predicate: RetryPredicate<T> | RetryPredicateAsync<T>, options: RetryOptions): Promise<T>;
-export function retry<T>(
-    predicate: RetryPredicate<T> | RetryPredicateAsync<T>,
+    operation: RetryOperation<T>,
     attemptsOrOptions: number | RetryOptions,
     time?: Duration,
     start: StartMode = 'immediate',
 ): Promise<T> {
     const options = normalizeRetryOptions(attemptsOrOptions, time, start);
 
-    return runFiniteInterval<T>(options, async (counter, complete) => {
-        if (counter > options.attempts) {
-            throw new Error(ERR_ATTEMPT_LIMIT_EXCEEDED);
-        }
+    if (!Number.isInteger(options.attempts) || options.attempts < 1) {
+        return Promise.reject(new RangeError('"attempts" must be a positive integer'));
+    }
 
-        const out = await predicate(counter);
+    return runFiniteInterval<T>(options, async (context, complete) => {
+        const retryContext: RetryContext = {
+            attempt: context.iteration,
+            elapsed: context.elapsed,
+            signal: context.signal,
+        };
 
-        if (typeof out === 'undefined') {
+        let value: T;
+
+        try {
+            value = await operation(retryContext);
+        } catch (error) {
+            if (context.signal.aborted) {
+                return false;
+            }
+
+            if (retryContext.attempt === options.attempts) {
+                throw error;
+            }
+
+            const shouldRetry = options.retryIf == null || (await options.retryIf(error, retryContext));
+
+            if (context.signal.aborted) {
+                return false;
+            }
+
+            if (!shouldRetry) {
+                throw error;
+            }
+
+            await options.onRetry?.(error, retryContext);
+
+            if (context.signal.aborted) {
+                return false;
+            }
+
             return true;
         }
 
-        complete(out);
+        if (context.signal.aborted) {
+            return false;
+        }
+
+        complete(value);
 
         return false;
     });
@@ -301,18 +445,18 @@ export function pipeline(
 ): Promise<any>;
 export function pipeline(
     predicates: Array<PipelinePredicate | PipelinePredicateAsync>,
-    options: HelperOptions,
+    options: ExecutionOptions,
 ): Promise<any>;
 export function pipeline(
     predicates: Array<PipelinePredicate | PipelinePredicateAsync>,
-    timeOrOptions: Duration | HelperOptions,
+    timeOrOptions: Duration | ExecutionOptions,
     start: StartMode = 'immediate',
 ): Promise<any> {
     if (!Array.isArray(predicates)) {
         throw new TypeError(`Expected "predicates" to by an array, but got ${typeof predicates}`);
     }
 
-    const options = normalizeHelperOptions(timeOrOptions, start);
+    const options = normalizeExecutionOptions(timeOrOptions, start);
 
     if (!predicates.length) {
         return resolveImmediately(undefined, options.signal);
@@ -321,7 +465,7 @@ export function pipeline(
     const steps = predicates.slice();
     let data: any = undefined;
 
-    return runFiniteInterval<any>(options, async (_counter, complete) => {
+    return runFiniteInterval<any>(options, async (_context, complete) => {
         const step = steps.shift();
 
         if (!step) {

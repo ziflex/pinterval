@@ -27,6 +27,7 @@ A powerful and flexible interval management library that goes beyond JavaScript'
   - [until](#until)
   - [retry](#retry)
   - [times](#times)
+  - [Migrating helper callbacks to v5](#migrating-helper-callbacks-to-v5)
   - [pipeline](#pipeline)
   - [sleep](#sleep)
 - [Duration Functions](#duration-functions)
@@ -206,7 +207,7 @@ func: (counter) => counter < 10
 func: ({ iteration }) => iteration < 10
 ```
 
-Duration functions and finite-helper predicates retain their existing 1-based numeric counters.
+Duration functions retain their existing 1-based numeric counters. Finite-helper callbacks receive `IntervalContext` or `RetryContext` in v5.
 
 ### Start Modes
 
@@ -362,7 +363,8 @@ try {
 }
 
 const controller = new AbortController();
-await until(checkReady, {
+await until(readState, {
+    predicate: state => state.ready,
     time: 500,
     signal: controller.signal
 });
@@ -386,7 +388,7 @@ await retry(loadData, {
 
 `AbortError` and `TimeoutError` are exported classes that extend the standard `Error` type in both Node and browser environments. pinterval creates an `AbortError` when it needs its own cancellation reason (for example, when `stop()` aborts an interval's effective signal) and a `TimeoutError` when an overall helper timeout expires.
 
-External cancellation still rejects with the exact `signal.reason`. That value belongs to the caller or host runtime and is not normalized, so it may be any value or host-provided error type. Neither cancellation nor timeout can forcibly interrupt arbitrary callback code already executing; it stops the operation promptly and prevents another iteration. Use the effective `signal` from `IntervalContext` with APIs such as `fetch` when callback work should also be interruptible.
+External cancellation still rejects with the exact `signal.reason`. That value belongs to the caller or host runtime and is not normalized, so it may be any value or host-provided error type. Neither cancellation nor timeout can forcibly interrupt arbitrary callback code already executing; it stops the operation promptly and prevents another iteration. Finite-helper callbacks receive the effective signal through `IntervalContext` or `RetryContext`; pass it to APIs such as `fetch` when callback work should also be interruptible.
 
 ### Dynamic Duration
 
@@ -421,28 +423,45 @@ For complex timing strategies, see the [Duration Functions](#duration-functions)
 
 ## Helper Functions
 
-pinterval provides several high-level helper functions for common patterns. All helpers are Promise-based, preserve their positional signatures, and also accept object options:
+pinterval provides focused Promise-based helpers for four distinct finite-execution patterns:
+
+- `poll` waits for a boolean condition.
+- `until` waits for a returned value accepted by a predicate.
+- `retry` repeats an operation only when it throws or rejects.
+- `times` executes an operation a fixed number of times.
+
+Every helper accepts positional scheduling arguments and object options. Its callback receives the same elapsed-time and effective-signal context used by `Interval`:
 
 ```typescript
-interface HelperOptions {
+interface ExecutionOptions {
     time: number | ((counter: number) => number); // Delay between executions
     start?: 'immediate' | 'delayed';              // Defaults to 'immediate'
     signal?: AbortSignal;                         // External cancellation
     timeout?: number;                             // Maximum total lifetime
 }
 
-interface RetryOptions extends HelperOptions {
-    attempts: number;
+interface RetryContext {
+    attempt: number;       // One-based execution number
+    elapsed: number;       // Milliseconds elapsed at attempt start
+    signal: AbortSignal;   // Effective cancellation signal
 }
 
-interface TimesOptions extends HelperOptions {
+interface RetryOptions extends ExecutionOptions {
+    attempts: number;
+    retryIf?: (error: unknown, context: RetryContext) => boolean | Promise<boolean>;
+    onRetry?: (error: unknown, context: RetryContext) => void | Promise<void>;
+}
+
+interface TimesOptions extends ExecutionOptions {
     amount: number;
 }
 ```
 
+`time`, `attempts`, and `amount` are required. `attempts` is the maximum total number of executions, including the first attempt.
+
 ### poll
 
-Repeatedly checks a condition while it returns `true`, then completes when it returns `false`. By default, the first check happens immediately.
+Repeatedly checks a condition until it returns `true`. It resolves with `void`; errors propagate unchanged. By default, the first check happens immediately.
 
 ```typescript
 import { poll } from 'pinterval';
@@ -450,7 +469,7 @@ import { poll } from 'pinterval';
 // Keep polling until the status becomes ready
 await poll(async () => {
     const status = await checkStatus();
-    return status !== 'ready';
+    return status === 'ready';
 }, 1000);
 
 console.log('Condition met!');
@@ -459,19 +478,19 @@ console.log('Condition met!');
 **Signature:**
 ```typescript
 function poll(
-    predicate: () => boolean | Promise<boolean>,
+    condition: (context: IntervalContext) => boolean | Promise<boolean>,
     time: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
 ): Promise<void>
 function poll(
-    predicate: () => boolean | Promise<boolean>,
-    options: HelperOptions
+    condition: (context: IntervalContext) => boolean | Promise<boolean>,
+    options: ExecutionOptions
 ): Promise<void>
 ```
 
 **Parameters:**
 
-- **predicate** - Function that returns `true` to continue polling and `false` to complete
+- **condition** - Function that returns `true` to complete and `false` to keep polling
 - **time** - Interval duration in milliseconds or duration function
 - **start** - Start mode: `'immediate'` (default) or `'delayed'`
 
@@ -480,7 +499,7 @@ function poll(
 ```typescript
 // Check immediately, then every 5 seconds (default behavior)
 await poll(
-    async () => !(await fetch('/api/status')).ok,
+    async () => (await fetch('/api/status')).ok,
     5000
 );
 ```
@@ -490,7 +509,7 @@ await poll(
 ```typescript
 // Wait 5 seconds before first check, then every 5 seconds
 await poll(
-    async () => !(await fetch('/api/status')).ok,
+    async () => (await fetch('/api/status')).ok,
     5000,
     'delayed'
 );
@@ -498,62 +517,62 @@ await poll(
 
 ### until
 
-Similar to `poll`, but returns the value from the predicate once it's defined (not `undefined`). By default, the first check happens immediately.
+Repeatedly evaluates a value source and returns the first value accepted by an explicit predicate. The predicate sees every result, including `undefined`, `null`, and other falsy values. Source and predicate errors propagate unchanged.
 
 ```typescript
 import { until } from 'pinterval';
 
-// Wait until we get actual data (checks immediately, then every 2 seconds)
-const data = await until(async () => {
-    const response = await fetch('/api/data');
-    if (!response.ok) return undefined;
-    
-    const json = await response.json();
-    return json.data; // Returns value once available
-}, 2000);
+// Wait until the returned state is ready
+const state = await until(async ({ signal }) => {
+    const response = await fetch('/api/data', { signal });
+    return await response.json();
+}, value => value.ready, 2000);
 
-console.log('Data received:', data);
+console.log('State ready:', state);
 ```
 
 **Signature:**
 ```typescript
 function until<T>(
-    predicate: () => T | undefined | Promise<T | undefined>,
+    source: (context: IntervalContext) => T | Promise<T>,
+    predicate: (value: T, context: IntervalContext) => boolean | Promise<boolean>,
     time: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
 ): Promise<T>
 function until<T>(
-    predicate: () => T | undefined | Promise<T | undefined>,
-    options: HelperOptions
+    source: (context: IntervalContext) => T | Promise<T>,
+    options: ExecutionOptions & {
+        predicate: (value: T, context: IntervalContext) => boolean | Promise<boolean>
+    }
 ): Promise<T>
 ```
 
 **Parameters:**
 
-- **predicate** - Function that returns a value when condition is met, or `undefined` to continue polling
+- **source** - Function that produces the value to inspect
+- **predicate** - Function that returns `true` when that value should be returned
 - **time** - Interval duration in milliseconds or duration function
 - **start** - Start mode: `'immediate'` (default) or `'delayed'`
 
 **Key Difference from poll:**
 
-- `poll` - Continues on `true`, completes on `false`, and returns `void`
-- `until` - Waits for non-`undefined` value, returns that value
+- `poll` - Waits for a boolean condition and returns `void`
+- `until` - Applies a predicate to produced values and returns the qualifying value
 
 ### retry
 
-Executes a function with retry logic. Stops after reaching the maximum attempts or when a defined value is returned.
+Executes an operation until it returns normally or the maximum total attempt count is reached. Any returned value is success; only thrown or rejected failures are retried.
 
 ```typescript
 import { retry } from 'pinterval';
 
 // Retry up to 5 times with 2 second intervals
 const result = await retry(
-    async (attempt) => {
-        const response = await fetch('/api/resource');
-        if (response.ok) {
-            return await response.json();
-        }
-        return undefined; // Will retry
+    async ({ attempt, signal }) => {
+        const response = await fetch('/api/resource', { signal });
+        if (!response.ok) throw new Error(`Attempt ${attempt} failed`);
+
+        return await response.json();
     },
     5,      // max attempts
     2000    // interval between attempts
@@ -563,21 +582,21 @@ const result = await retry(
 **Signature:**
 ```typescript
 function retry<T>(
-    predicate: (attempt: number) => T | Promise<T>,
+    operation: (context: RetryContext) => T | Promise<T>,
     attempts: number,
     time: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
 ): Promise<T>
 function retry<T>(
-    predicate: (attempt: number) => T | Promise<T>,
+    operation: (context: RetryContext) => T | Promise<T>,
     options: RetryOptions
 ): Promise<T>
 ```
 
 **Parameters:**
 
-- **predicate** - Function to retry that receives the current attempt number. Return `undefined` to retry, or a value to resolve
-- **attempts** - Maximum number of retry attempts
+- **operation** - Function to execute. Any return is success; throwing or rejecting is failure
+- **attempts** - Maximum total executions, including the first attempt
 - **time** - Interval between retries
 - **start** - Start mode: `'immediate'` (default) or `'delayed'`
 
@@ -591,36 +610,47 @@ await retry(loadData, {
 });
 ```
 
+Retry only selected failures and observe actual retries without replacing the original error:
+
+```typescript
+const result = await retry(loadData, {
+    attempts: 5,
+    time: 500,
+    retryIf: error => error instanceof HttpError && error.status >= 500,
+    onRetry: (error, { attempt }) => {
+        console.warn(`Attempt ${attempt} failed`, error);
+    }
+});
+```
+
+`retryIf` and `onRetry` may be asynchronous. `onRetry` runs only when another attempt will execute. Exhaustion rejects with the last operation error; `retryIf: false` rethrows the current error unchanged. Errors from `retryIf` or `onRetry` also propagate unchanged.
+
 **With exponential backoff:**
 
 ```typescript
 import { retry, duration } from 'pinterval';
 
 const result = await retry(
-    async (attempt) => {
-        try {
-            return await fetchData();
-        } catch {
-            return undefined; // Retry on error
-        }
-    },
+    async () => await fetchData(),
     10,
-    duration.exponential(1000, 30000) // 1s, 2s, 4s, 8s, 16s, 30s, 30s...
+    duration.exponential(1000, 30000)
 );
 ```
 
+With the default immediate start, the first execution has no delay and the first retry uses duration index `2`. Pass `start: 'delayed'` when the first execution should wait for duration index `1`.
+
 ### times
 
-Executes a function a specific number of times with an interval between executions. By default, the first execution happens immediately.
+Executes a function sequentially exactly `amount` times with a delay between executions. `amount` must be a non-negative integer, and zero resolves without executing.
 
 ```typescript
 import { times } from 'pinterval';
 
 // Execute immediately, then 4 more times with 1 second between executions
 await times(
-    async (counter) => {
-        console.log(`Execution ${counter}`);
-        await updateMetrics(counter);
+    async ({ iteration, signal }) => {
+        console.log(`Execution ${iteration}`);
+        await updateMetrics(iteration, { signal });
     },
     5,
     1000
@@ -632,23 +662,46 @@ console.log('All executions completed!');
 **Signature:**
 ```typescript
 function times(
-    predicate: (counter: number) => void | Promise<void>,
+    operation: (context: IntervalContext) => void | Promise<void>,
     amount: number,
     time: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
 ): Promise<void>
 function times(
-    predicate: (counter: number) => void | Promise<void>,
+    operation: (context: IntervalContext) => void | Promise<void>,
     options: TimesOptions
 ): Promise<void>
 ```
 
 **Parameters:**
 
-- **predicate** - Function to execute. Receives counter (1-based) as parameter
+- **operation** - Function to execute. Receives one-based `iteration`, `elapsed`, and the effective `signal`
 - **amount** - Number of times to execute
 - **time** - Interval between executions
 - **start** - Start mode: `'immediate'` (default) or `'delayed'`
+
+### Migrating helper callbacks to v5
+
+v5 intentionally removes result-sentinel retry behavior and makes helper conditions positive:
+
+```typescript
+// v4: true meant continue
+await poll(() => !isReady(), 500);
+// v5: true means satisfied
+await poll(() => isReady(), 500);
+
+// v4: undefined meant continue
+await until(readState, 500);
+// v5: the predicate owns acceptance
+await until(readState, state => state.ready, 500);
+
+// v4: undefined meant retry
+await retry(async attempt => tryLoad(attempt), 5, 500);
+// v5: failures retry; every normal return succeeds
+await retry(async ({ attempt }) => await load(attempt), 5, 500);
+```
+
+Finite-helper callbacks now receive `IntervalContext` or `RetryContext` instead of a numeric counter. Duration functions keep their existing indices: immediate helpers skip index `1`, while delayed helpers use it for the initial delay.
 
 ### pipeline
 
@@ -676,7 +729,7 @@ function pipeline(
 ): Promise<any>
 function pipeline(
     predicates: Array<(data: any) => any | Promise<any>>,
-    options: HelperOptions
+    options: ExecutionOptions
 ): Promise<any>
 ```
 
@@ -820,12 +873,12 @@ import { retry, duration } from 'pinterval';
 
 // Exponential backoff for retries
 const result = await retry(
-    async (attempt) => await fetchData(),
+    async () => await fetchData(),
     10,
     duration.exponential(100, 10000)
 );
 
-// Executes at: 100ms, 200ms, 400ms, 800ms, 1600ms, 3200ms, 6400ms, 10000ms, 10000ms...
+// Immediate first attempt, then retry delays: 200ms, 400ms, 800ms, 1600ms, ...
 ```
 
 **Signature:**
@@ -898,8 +951,8 @@ const result = await retry(
     duration.jittered(1000, 30000, 0.1)
 );
 
-// Example execution times (with ±10% jitter):
-// ~1000ms (900-1100), ~2000ms (1800-2200), ~4000ms (3600-4400)...
+// Immediate first attempt, then retry delays (with ±10% jitter):
+// ~2000ms (1800-2200), ~4000ms (3600-4400), ~8000ms (7200-8800)...
 ```
 
 **Signature:**
@@ -1038,7 +1091,7 @@ import { retry, duration } from 'pinterval';
 
 // Aggressive at first, then back off
 const result = await retry(
-    async (attempt) => await fetchData(),
+    async () => await fetchData(),
     20,
     duration.steps([
         { threshold: 0, duration: 100 },   // First 3 attempts: fast (100ms)
@@ -1109,14 +1162,14 @@ async function waitForJobCompletion(jobId: string) {
         
         if (job.status === 'completed') {
             console.log('Job completed successfully!');
-            return false;
+            return true;
         }
         
         if (job.status === 'failed') {
             throw new Error('Job failed!');
         }
         
-        return true; // Keep polling
+        return false; // Keep polling
     }, 2000, 'immediate');
 }
 
@@ -1135,9 +1188,9 @@ async function fetchWithRetry(url: string) {
     // Try primary endpoint with exponential backoff
     try {
         return await retry(
-            async (attempt) => {
-                const response = await fetch(url);
-                if (!response.ok) return undefined;
+            async ({ signal }) => {
+                const response = await fetch(url, { signal });
+                if (!response.ok) throw new Error(`Primary request failed: ${response.status}`);
                 return await response.json();
             },
             5,
@@ -1149,9 +1202,9 @@ async function fetchWithRetry(url: string) {
         
         // Fall back to backup endpoint with linear backoff
         return await retry(
-            async (attempt) => {
-                const response = await fetch(url.replace('api', 'api-backup'));
-                if (!response.ok) return undefined;
+            async ({ signal }) => {
+                const response = await fetch(url.replace('api', 'api-backup'), { signal });
+                if (!response.ok) throw new Error(`Backup request failed: ${response.status}`);
                 return await response.json();
             },
             3,
@@ -1236,22 +1289,18 @@ import { retry, duration } from 'pinterval';
 async function connectToDatabase(config: DbConfig) {
     console.log('Attempting to connect to database...');
     
-    return await retry(
-        async (attempt) => {
-            try {
-                const connection = await createConnection(config);
-                await connection.ping();
-                console.log('✓ Database connected');
-                return connection;
-            } catch (error) {
-                console.log(`✗ Connection failed (attempt ${attempt}): ${error.message}, retrying...`);
-                return undefined;
-            }
-        },
-        10,
-        duration.jittered(1000, 30000, 0.2), // ±20% jitter
-        'immediate'
-    );
+    return await retry(async () => {
+        const connection = await createConnection(config);
+        await connection.ping();
+        console.log('✓ Database connected');
+        return connection;
+    }, {
+        attempts: 10,
+        time: duration.jittered(1000, 30000, 0.2), // ±20% jitter
+        onRetry: (error, { attempt }) => {
+            console.log(`✗ Connection failed (attempt ${attempt}): ${error}, retrying...`);
+        }
+    });
 }
 ```
 
@@ -1390,9 +1439,9 @@ interface User {
 // Type-safe until
 const user = await until<User>(async () => {
     const response = await fetch('/api/user');
-    if (!response.ok) return undefined;
+    if (!response.ok) throw new Error(`Request failed: ${response.status}`);
     return await response.json(); // Typed as User
-}, 1000);
+}, user => user.id.length > 0, 1000);
 
 // user is typed as User
 console.log(user.email);
@@ -1404,9 +1453,9 @@ interface ApiResponse {
 }
 
 const result = await retry<ApiResponse>(
-    async (attempt) => {
-        const response = await fetch('/api/data');
-        if (!response.ok) return undefined;
+    async ({ signal }) => {
+        const response = await fetch('/api/data', { signal });
+        if (!response.ok) throw new Error(`Request failed: ${response.status}`);
         return await response.json();
     },
     5,
@@ -1483,14 +1532,17 @@ intervalId = setInterval(async () => {
 **After (pinterval):**
 
 ```typescript
-import { retry } from 'pinterval';
+import { until } from 'pinterval';
 
 try {
-    await retry(async (attempt) => {
-        const response = await fetch('/api/status');
-        const data = await response.json();
-        return data.ready ? data : undefined;
-    }, 10, 2000);
+    await until(async ({ signal }) => {
+        const response = await fetch('/api/status', { signal });
+        return await response.json();
+    }, {
+        predicate: data => data.ready,
+        time: 2000,
+        timeout: 20_000
+    });
     
     console.log('Ready!');
 } catch (error) {
@@ -1571,11 +1623,11 @@ class MyComponent {
 The default start mode is now `'immediate'` for most helper functions, which is ideal for most use cases:
 
 ```typescript
-// ✅ Default behavior: Check immediately, then retry while the predicate returns true
-await poll(() => !checkStatus(), 1000); // Immediate by default
+// ✅ Default behavior: check immediately, then resolve when the condition is true
+await poll(() => checkStatus(), 1000); // Immediate by default
 
 // Use 'delayed' when you specifically want to wait before the first execution
-await poll(() => !checkStatus(), 1000, 'delayed'); // Wait 1s before first check
+await poll(() => checkStatus(), 1000, 'delayed'); // Wait 1s before first check
 ```
 
 **When to use 'delayed' mode:**
@@ -1600,11 +1652,11 @@ const interval = new Interval({
 
 ```typescript
 // Wait for service to be ready, then start processing
-await poll(async () => !(await isServiceReady()), 1000);
+await poll(async () => await isServiceReady(), 1000);
 
 // Now run the main task with retries
-await times(async (counter) => {
-    await retry(async () => await processItem(counter), 3, 1000);
+await times(async ({ iteration }) => {
+    await retry(async () => await processItem(iteration), 3, 1000);
 }, 10, 5000);
 ```
 

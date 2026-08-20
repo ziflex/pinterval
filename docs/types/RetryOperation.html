@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>RetryPredicate | pinterval</title><meta name="description" content="Documentation for pinterval"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>RetryOperation | pinterval</title><meta name="description" content="Documentation for pinterval"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container"><a href="../index.html" class="title">pinterval</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
@@ -8,9 +8,11 @@
 <div class="col-content">
 <div class="tsd-page-title">
 <ul class="tsd-breadcrumb" aria-label="Breadcrumb">
-<li><a href="" aria-current="page">RetryPredicate</a></li></ul>
-<h1 class="deprecated">Type Alias RetryPredicate&lt;T&gt;</h1></div>
-<div class="tsd-signature"><span class="tsd-kind-type-alias">RetryPredicate</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">context</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/RetryContext.html" class="tsd-signature-type tsd-kind-interface">RetryContext</a><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a></div>
+<li><a href="" aria-current="page">RetryOperation</a></li></ul>
+<h1>Type Alias RetryOperation&lt;T&gt;</h1></div>
+<div class="tsd-signature"><span class="tsd-kind-type-alias">RetryOperation</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">context</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/RetryContext.html" class="tsd-signature-type tsd-kind-interface">RetryContext</a><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a><span class="tsd-signature-symbol">&gt;</span></div>
+<div class="tsd-comment tsd-typography"><p>Performs one execution for <a href="../functions/retry.html" class="tsd-kind-function">retry</a>. Any normal return value is successful.</p>
+</div>
 <section class="tsd-panel">
 <h4>Type Parameters</h4>
 <ul class="tsd-type-parameter-list">
@@ -20,19 +22,15 @@
 <ul class="tsd-parameters">
 <li class="tsd-parameter-signature">
 <ul class="tsd-signatures">
-<li class="tsd-signature" id="__type"><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">context</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/RetryContext.html" class="tsd-signature-type tsd-kind-interface">RetryContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a></li>
+<li class="tsd-signature" id="__type"><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">context</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/RetryContext.html" class="tsd-signature-type tsd-kind-interface">RetryContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a><span class="tsd-signature-symbol">&gt;</span></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li><span><span class="tsd-kind-parameter">context</span>: <a href="../interfaces/RetryContext.html" class="tsd-signature-type tsd-kind-interface">RetryContext</a></span></li></ul></div>
-<h4 class="tsd-returns-title">Returns <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a></h4></li></ul></li></ul></div>
-<div class="tsd-comment tsd-typography">
-<div class="tsd-tag-deprecated">
-<h4 class="tsd-anchor-link" id="deprecated">Deprecated<a href="#deprecated" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p>Use <a href="RetryOperation.html" class="tsd-kind-type-alias">RetryOperation</a>.</p>
-</div></div><aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a><span class="tsd-signature-symbol">&gt;</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/eafc87768055764e2c81b3cc5b0c4fe8329ac8f4/src/helpers.ts#L362">src/helpers.ts:362</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/eafc87768055764e2c81b3cc5b0c4fe8329ac8f4/src/helpers.ts#L360">src/helpers.ts:360</a></li></ul></aside></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

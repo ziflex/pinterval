@@ -40,3 +40,5 @@ lib
 *.tsbuildinfo
 
 .idea/
+
+.DS_Store
