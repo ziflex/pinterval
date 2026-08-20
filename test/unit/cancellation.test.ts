@@ -1,7 +1,18 @@
 import { expect } from 'chai';
 import sinon, { SinonFakeTimers } from 'sinon';
 
-import { AbortError, Interval, pipeline, poll, retry, sleep, TimeoutError, times, until } from '../../src';
+import {
+    AbortError,
+    Interval,
+    pipeline,
+    poll,
+    retry,
+    RetryContext,
+    sleep,
+    TimeoutError,
+    times,
+    until,
+} from '../../src';
 
 function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
     return promise.then(
@@ -486,9 +497,8 @@ describe('Cancellation and timeouts', () => {
             expect(clock.countTimers()).to.equal(0);
         });
 
-        it('does not evaluate retryIf or onRetry after timing out during an operation', async () => {
+        it('does not invoke onRetry after timing out during an operation', async () => {
             let rejectOperation: ((reason: unknown) => void) | undefined;
-            const retryIf = sinon.spy(() => true);
             const onRetry = sinon.spy();
             const operation = sinon.spy(
                 () =>
@@ -496,7 +506,7 @@ describe('Cancellation and timeouts', () => {
                         rejectOperation = reject;
                     }),
             );
-            const promise = retry(operation, { attempts: 3, time: 100, timeout: 50, retryIf, onRetry });
+            const promise = retry(operation, { attempts: 3, time: 100, timeout: 50, onRetry });
             const rejection = rejectionOf(promise);
 
             await clock.tickAsync(0);
@@ -507,7 +517,6 @@ describe('Cancellation and timeouts', () => {
             await clock.tickAsync(1_000);
 
             expect(operation.callCount).to.equal(1);
-            expect(retryIf.callCount).to.equal(0);
             expect(onRetry.callCount).to.equal(0);
             expect(clock.countTimers()).to.equal(0);
         });
@@ -539,15 +548,16 @@ describe('Cancellation and timeouts', () => {
             expect(clock.countTimers()).to.equal(0);
         });
 
-        it('does not invoke onRetry or schedule work after aborting an asynchronous retryIf', async () => {
+        it('does not schedule work after aborting while awaiting asynchronous onRetry', async () => {
             const controller = new AbortController();
             const reason = new Error('cancelled');
             const operation = sinon.stub().throws(new Error('failure'));
-            const onRetry = sinon.spy();
             let resolveDecision: ((value: boolean) => void) | undefined;
-            const retryIf = sinon.spy(
-                () =>
+            let hookSignal: AbortSignal | undefined;
+            const onRetry = sinon.spy(
+                (_error: unknown, { signal }: RetryContext) =>
                     new Promise<boolean>((resolve) => {
+                        hookSignal = signal;
                         resolveDecision = resolve;
                     }),
             );
@@ -555,31 +565,33 @@ describe('Cancellation and timeouts', () => {
                 attempts: 3,
                 time: 100,
                 signal: controller.signal,
-                retryIf,
                 onRetry,
             });
             const rejection = rejectionOf(promise);
 
             await clock.tickAsync(0);
-            expect(retryIf.callCount).to.equal(1);
+            expect(onRetry.callCount).to.equal(1);
+            expect(hookSignal?.aborted).to.be.false;
 
             controller.abort(reason);
             expect(await rejection).to.equal(reason);
+            expect(hookSignal?.aborted).to.be.true;
 
             resolveDecision?.(true);
             await clock.tickAsync(1_000);
 
             expect(operation.callCount).to.equal(1);
-            expect(onRetry.callCount).to.equal(0);
             expect(clock.countTimers()).to.equal(0);
         });
 
         it('does not schedule another attempt after timing out during onRetry', async () => {
             const operation = sinon.stub().throws(new Error('failure'));
-            let finishHook: (() => void) | undefined;
+            let finishHook: ((value: boolean) => void) | undefined;
+            let hookSignal: AbortSignal | undefined;
             const onRetry = sinon.spy(
-                () =>
-                    new Promise<void>((resolve) => {
+                (_error: unknown, { signal }: RetryContext) =>
+                    new Promise<boolean>((resolve) => {
+                        hookSignal = signal;
                         finishHook = resolve;
                     }),
             );
@@ -590,9 +602,12 @@ describe('Cancellation and timeouts', () => {
             expect(onRetry.callCount).to.equal(1);
 
             await clock.tickAsync(50);
-            expect(await rejection).to.be.instanceOf(TimeoutError);
+            const timeoutError = await rejection;
 
-            finishHook?.();
+            expect(timeoutError).to.be.instanceOf(TimeoutError);
+            expect(hookSignal?.aborted).to.be.true;
+
+            finishHook?.(true);
             await clock.tickAsync(1_000);
 
             expect(operation.callCount).to.equal(1);

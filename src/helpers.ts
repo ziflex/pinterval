@@ -38,20 +38,17 @@ export interface RetryContext {
     readonly signal: AbortSignal;
 }
 
-/** Determines whether a failed operation should be retried. */
-export type RetryCondition = (error: unknown, context: RetryContext) => boolean | Promise<boolean>;
-/** Observes a failure that has been accepted for another attempt. */
-export type RetryHook = (error: unknown, context: RetryContext) => void | Promise<void>;
+/** Controls whether a failed operation should be retried. `false` stops; `true` or `void` continues. */
+export type RetryDecision = boolean | void;
+/** Runs after a retryable failure and before the retry delay, optionally deciding whether retrying should proceed. */
+export type OnRetry = (error: unknown, context: RetryContext) => RetryDecision | Promise<RetryDecision>;
 
 export interface RetryOptions extends ExecutionOptions {
     /** Maximum total number of executions. Must be a positive integer. */
     attempts: number;
 
-    /** Determines whether a failed operation should be attempted again. Defaults to `true`. */
-    retryIf?: RetryCondition;
-
-    /** Runs after a failure is accepted for retry and before the next delay is scheduled. */
-    onRetry?: RetryHook;
+    /** Runs after a retryable failure and before the next delay. Only `false` stops retrying. */
+    onRetry?: OnRetry;
 }
 
 export interface TimesOptions extends ExecutionOptions {
@@ -74,8 +71,7 @@ interface NormalizedUntilOptions<T> extends NormalizedExecutionOptions {
 
 interface NormalizedRetryOptions extends NormalizedExecutionOptions {
     attempts: number;
-    retryIf?: RetryCondition;
-    onRetry?: RetryHook;
+    onRetry?: OnRetry;
 }
 
 interface NormalizedTimesOptions extends NormalizedExecutionOptions {
@@ -367,7 +363,8 @@ export type RetryPredicateAsync<T> = (context: RetryContext) => Promise<T>;
  * Repeatedly executes an operation while it throws or rejects.
  *
  * `attempts` is the maximum total execution count. Any normal return value is successful, and exhaustion rejects with
- * the final operation error unchanged.
+ * the final operation error unchanged. For failures eligible for another attempt, `onRetry` runs before the retry delay;
+ * return `false` to reject with that operation error, or return `true` or `void` to continue.
  */
 export function retry<T>(operation: RetryOperation<T>, attempts: number, time: Duration, start?: StartMode): Promise<T>;
 export function retry<T>(operation: RetryOperation<T>, options: RetryOptions): Promise<T>;
@@ -403,20 +400,14 @@ export function retry<T>(
                 throw error;
             }
 
-            const shouldRetry = options.retryIf == null || (await options.retryIf(error, retryContext));
+            const decision = await options.onRetry?.(error, retryContext);
 
             if (context.signal.aborted) {
                 return false;
             }
 
-            if (!shouldRetry) {
+            if (decision === false) {
                 throw error;
-            }
-
-            await options.onRetry?.(error, retryContext);
-
-            if (context.signal.aborted) {
-                return false;
             }
 
             return true;

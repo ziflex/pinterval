@@ -229,7 +229,19 @@ describe('Helpers', () => {
             });
         }
 
-        it('retries failures, exposes one-based context, and returns a later success', async () => {
+        it('retries normally without onRetry', async () => {
+            const operation = sinon.stub();
+            operation.onFirstCall().throws(new Error('retry'));
+            operation.onSecondCall().returns('done');
+            const promise = retry(operation, { attempts: 2, time: 10 });
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal('done');
+            expect(operation.callCount).to.equal(2);
+        });
+
+        it('treats an undefined onRetry result as retry approval and exposes one-based context', async () => {
             const first = new Error('first');
             const second = new Error('second');
             const contexts: RetryContext[] = [];
@@ -241,7 +253,7 @@ describe('Helpers', () => {
 
                 return 'done';
             });
-            const onRetry = sinon.spy();
+            const onRetry = sinon.spy(() => undefined);
             const promise = retry(operation, { attempts: 3, time: 10, onRetry });
 
             await clock.runAllAsync();
@@ -255,76 +267,103 @@ describe('Helpers', () => {
             expect(onRetry.secondCall.args).to.deep.equal([second, contexts[1]]);
         });
 
-        it('rejects with the final application error without another decision or delay', async () => {
+        it('treats true as retry approval and skips onRetry after the final failure', async () => {
             const errors = [new Error('one'), new Error('two'), new Error('three')];
             const operation = sinon.stub().callsFake(({ attempt }: RetryContext) => {
                 throw errors[attempt - 1];
             });
-            const retryIf = sinon.stub().returns(true);
-            const onRetry = sinon.spy();
-            const promise = retry(operation, { attempts: 3, time: 10, retryIf, onRetry });
+            const onRetry = sinon.stub().returns(true);
+            const promise = retry(operation, { attempts: 3, time: 10, onRetry });
             const rejection = rejectionOf(promise);
 
             await clock.runAllAsync();
 
             expect(await rejection).to.equal(errors[2]);
             expect(operation.callCount).to.equal(3);
-            expect(retryIf.callCount).to.equal(2);
             expect(onRetry.callCount).to.equal(2);
             expect(clock.now).to.equal(20);
             expect(clock.countTimers()).to.equal(0);
         });
 
-        it('supports synchronous and asynchronous retryIf decisions', async () => {
-            const firstError = new Error('retry');
-            const permitted = sinon.stub();
-            permitted.onFirstCall().throws(firstError);
-            permitted.onSecondCall().returns('ok');
-            const asyncRetryIf = sinon.spy(async (error: unknown, { attempt }: RetryContext) => {
+        it('awaits an async onRetry result of true before retrying', async () => {
+            const operationError = new Error('retry');
+            const operation = sinon.stub();
+            operation.onFirstCall().throws(operationError);
+            operation.onSecondCall().returns('ok');
+            const onRetry = sinon.spy(async (error: unknown, { attempt }: RetryContext) => {
                 await Promise.resolve();
 
-                return error === firstError && attempt === 1;
+                return error === operationError && attempt === 1;
             });
-            const permittedPromise = retry(permitted, { attempts: 2, time: 10, retryIf: asyncRetryIf });
+            const promise = retry(operation, { attempts: 2, time: 10, onRetry });
 
             await clock.runAllAsync();
-            expect(await permittedPromise).to.equal('ok');
-            expect(asyncRetryIf.callCount).to.equal(1);
 
-            const rejectedError = new Error('do not retry');
-            const rejected = sinon.stub().throws(rejectedError);
-            const rejectedPromise = retry(rejected, { attempts: 3, time: 10, retryIf: () => false });
-            const rejection = rejectionOf(rejectedPromise);
+            expect(await promise).to.equal('ok');
+            expect(onRetry.callCount).to.equal(1);
+        });
+
+        it('stops on false, preserves the operation error, and does not schedule a retry timer', async () => {
+            const operationError = new Error('do not retry');
+            const operation = sinon.stub().throws(operationError);
+            const duration = sinon.stub().returns(10);
+            const promise = retry(operation, { attempts: 3, time: duration, onRetry: () => false });
+            const rejection = rejectionOf(promise);
 
             await clock.tickAsync(0);
 
-            expect(await rejection).to.equal(rejectedError);
-            expect(rejected.callCount).to.equal(1);
+            expect(await rejection).to.equal(operationError);
+            expect(operation.callCount).to.equal(1);
+            expect(duration.callCount).to.equal(0);
             expect(clock.countTimers()).to.equal(0);
         });
 
-        it('propagates retryIf and onRetry failures unchanged', async () => {
+        it('awaits an async onRetry result of false before stopping', async () => {
+            const operationError = new Error('do not retry');
+            const operation = sinon.stub().throws(operationError);
+            const onRetry = sinon.spy(async () => {
+                await Promise.resolve();
+
+                return false;
+            });
+            const promise = retry(operation, { attempts: 3, time: 10, onRetry });
+            const rejection = rejectionOf(promise);
+
+            await clock.tickAsync(0);
+
+            expect(await rejection).to.equal(operationError);
+            expect(operation.callCount).to.equal(1);
+            expect(onRetry.callCount).to.equal(1);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('propagates a synchronous onRetry error unchanged', async () => {
             const operationError = new Error('operation');
-            const conditionError = new Error('condition');
-            const conditionPromise = retry(
+            const hookError = new Error('hook');
+            const promise = retry(
                 () => {
                     throw operationError;
                 },
                 {
                     attempts: 2,
                     time: 10,
-                    retryIf: async () => {
-                        throw conditionError;
+                    onRetry: () => {
+                        throw hookError;
                     },
                 },
             );
-            const conditionRejection = rejectionOf(conditionPromise);
+            const rejection = rejectionOf(promise);
 
             await clock.tickAsync(0);
-            expect(await conditionRejection).to.equal(conditionError);
 
+            expect(await rejection).to.equal(hookError);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('propagates a rejected onRetry promise unchanged', async () => {
+            const operationError = new Error('operation');
             const hookError = new Error('hook');
-            const hookPromise = retry(
+            const promise = retry(
                 () => {
                     throw operationError;
                 },
@@ -336,10 +375,22 @@ describe('Helpers', () => {
                     },
                 },
             );
-            const hookRejection = rejectionOf(hookPromise);
+            const rejection = rejectionOf(promise);
 
             await clock.tickAsync(0);
-            expect(await hookRejection).to.equal(hookError);
+
+            expect(await rejection).to.equal(hookError);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('does not call onRetry after a successful attempt', async () => {
+            const onRetry = sinon.spy();
+            const promise = retry(() => 'done', { attempts: 3, time: 10, onRetry });
+
+            await clock.tickAsync(0);
+
+            expect(await promise).to.equal('done');
+            expect(onRetry.callCount).to.equal(0);
             expect(clock.countTimers()).to.equal(0);
         });
 

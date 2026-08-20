@@ -446,10 +446,15 @@ interface RetryContext {
     signal: AbortSignal;   // Effective cancellation signal
 }
 
+type RetryDecision = boolean | void;
+type OnRetry = (
+    error: unknown,
+    context: RetryContext
+) => RetryDecision | Promise<RetryDecision>;
+
 interface RetryOptions extends ExecutionOptions {
     attempts: number;
-    retryIf?: (error: unknown, context: RetryContext) => boolean | Promise<boolean>;
-    onRetry?: (error: unknown, context: RetryContext) => void | Promise<void>;
+    onRetry?: OnRetry;
 }
 
 interface TimesOptions extends ExecutionOptions {
@@ -610,20 +615,43 @@ await retry(loadData, {
 });
 ```
 
-Retry only selected failures and observe actual retries without replacing the original error:
+Observe failures and decide whether to retry with the same callback:
 
 ```typescript
 const result = await retry(loadData, {
     attempts: 5,
     time: 500,
-    retryIf: error => error instanceof HttpError && error.status >= 500,
     onRetry: (error, { attempt }) => {
         console.warn(`Attempt ${attempt} failed`, error);
+
+        return error instanceof HttpError && error.status >= 500;
     }
 });
 ```
 
-`retryIf` and `onRetry` may be asynchronous. `onRetry` runs only when another attempt will execute. Exhaustion rejects with the last operation error; `retryIf: false` rethrows the current error unchanged. Errors from `retryIf` or `onRetry` also propagate unchanged.
+`onRetry` runs after an attempt fails, only when another attempt is available, and before the retry delay begins. Returning `false` stops and rethrows the current operation error unchanged. Returning `true`, returning `undefined`, or omitting a return continues with the retry, so observation-only callbacks do not accidentally disable retries:
+
+```typescript
+// Observation only: the missing return continues retrying.
+onRetry: (error, { attempt }) => {
+    logger.warn(`Attempt ${attempt} failed`, error);
+}
+
+// Decision only.
+onRetry: error => isTransient(error)
+```
+
+The callback may be asynchronous. It is awaited before the retry delay, receives the effective cancellation signal through `RetryContext`, and may combine asynchronous observation with a decision:
+
+```typescript
+onRetry: async (error, context) => {
+    await recordFailure(error, context);
+
+    return shouldContinue(error);
+}
+```
+
+If `onRetry` throws or rejects, its error is terminal and propagates unchanged. Exhaustion still rejects with the final operation error without invoking `onRetry` again.
 
 **With exponential backoff:**
 
