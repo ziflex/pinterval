@@ -1,40 +1,181 @@
+import { createCancellationScope, getAbortReason } from './cancellation';
 import { Duration, Interval, StartMode } from './interval';
+
+export interface HelperOptions {
+    /** Delay between executions, in milliseconds or as a counter-based duration function. */
+    time: Duration;
+
+    /** Determines whether the first execution is immediate or delayed. Defaults to `immediate`. */
+    start?: StartMode;
+
+    /** An optional external cancellation signal. */
+    signal?: AbortSignal;
+
+    /** Maximum total operation lifetime in milliseconds. */
+    timeout?: number;
+}
+
+export interface RetryOptions extends HelperOptions {
+    /** Maximum number of attempts. */
+    attempts: number;
+}
+
+export interface TimesOptions extends HelperOptions {
+    /** Number of times to execute the predicate. */
+    amount: number;
+}
+
+export interface SleepOptions {
+    /** An optional external cancellation signal. */
+    signal?: AbortSignal;
+}
+
+interface NormalizedHelperOptions extends HelperOptions {
+    start: StartMode;
+}
+
+type Complete<T> = (value: T) => void;
+type FiniteIntervalFunction<T> = (counter: number, complete: Complete<T>) => boolean | void | Promise<boolean | void>;
+
+function normalizeHelperOptions(timeOrOptions: Duration | HelperOptions, start: StartMode): NormalizedHelperOptions {
+    if (typeof timeOrOptions === 'number' || typeof timeOrOptions === 'function') {
+        return {
+            time: timeOrOptions,
+            start,
+        };
+    }
+
+    return {
+        ...timeOrOptions,
+        start: timeOrOptions.start ?? 'immediate',
+    };
+}
+
+function normalizeRetryOptions(
+    attemptsOrOptions: number | RetryOptions,
+    time: Duration | undefined,
+    start: StartMode,
+): NormalizedHelperOptions & Pick<RetryOptions, 'attempts'> {
+    if (typeof attemptsOrOptions === 'number') {
+        return {
+            attempts: attemptsOrOptions,
+            time: time as Duration,
+            start,
+        };
+    }
+
+    return {
+        ...attemptsOrOptions,
+        start: attemptsOrOptions.start ?? 'immediate',
+    };
+}
+
+function normalizeTimesOptions(
+    amountOrOptions: number | TimesOptions,
+    time: Duration | undefined,
+    start: StartMode,
+): NormalizedHelperOptions & Pick<TimesOptions, 'amount'> {
+    if (typeof amountOrOptions === 'number') {
+        return {
+            amount: amountOrOptions,
+            time: time as Duration,
+            start,
+        };
+    }
+
+    return {
+        ...amountOrOptions,
+        start: amountOrOptions.start ?? 'immediate',
+    };
+}
+
+function resolveImmediately<T>(value: T, signal?: AbortSignal): Promise<T> {
+    if (signal?.aborted) {
+        return Promise.reject(getAbortReason(signal));
+    }
+
+    return Promise.resolve(value);
+}
+
+function runFiniteInterval<T>(options: NormalizedHelperOptions, func: FiniteIntervalFunction<T>): Promise<T> {
+    const cancellation = createCancellationScope(options.signal, options.timeout);
+    const signal = cancellation.signal;
+
+    if (signal?.aborted) {
+        const reason = getAbortReason(signal);
+        cancellation.dispose();
+
+        return Promise.reject(reason);
+    }
+
+    return new Promise<T>((resolve, reject) => {
+        let interval: Interval | undefined;
+        let settled = false;
+        let removeAbortHandler = (): void => undefined;
+
+        const settle = (callback: () => void): void => {
+            if (settled) {
+                return;
+            }
+
+            settled = true;
+            interval?.stop();
+            removeAbortHandler();
+            cancellation.dispose();
+            callback();
+        };
+
+        const complete: Complete<T> = (value) => settle(() => resolve(value));
+        const fail = (err: unknown): void => settle(() => reject(err));
+
+        try {
+            interval = new Interval({
+                start: options.start,
+                time: options.time,
+                signal,
+                func: async (counter) => func(counter, complete),
+                onError: fail,
+            });
+
+            if (signal != null) {
+                const handleAbort = (): void => fail(getAbortReason(signal));
+
+                signal.addEventListener('abort', handleAbort, { once: true });
+                removeAbortHandler = (): void => signal.removeEventListener('abort', handleAbort);
+            }
+
+            interval.start();
+        } catch (err) {
+            fail(err);
+        }
+    });
+}
 
 export type PollPredicate = () => boolean;
 export type PollPredicateAsync = () => Promise<boolean>;
 
 /**
- * Repeatedly evaluates a predicate function at a defined interval until it resolves to `true` or the timeout is reached.
- *
- * @param {PollPredicate | PollPredicateAsync} predicate - The function to evaluate. Can be synchronous or asynchronous.
- * @param {Duration} timeout - The duration for which the polling continues.
- * @param {StartMode} [start='immediate'] - Determines when the polling interval starts. Default is 'immediate'.
- * @return {Promise<void>} A promise that resolves when the predicate returns `true` or rejects if an error occurs in the process.
+ * Repeatedly evaluates a predicate while it resolves to `true`, completing when it resolves to `false`.
  */
+export function poll(predicate: PollPredicate | PollPredicateAsync, time: Duration, start?: StartMode): Promise<void>;
+export function poll(predicate: PollPredicate | PollPredicateAsync, options: HelperOptions): Promise<void>;
 export function poll(
     predicate: PollPredicate | PollPredicateAsync,
-    timeout: Duration,
+    timeOrOptions: Duration | HelperOptions,
     start: StartMode = 'immediate',
 ): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const interval = new Interval({
-            start,
-            time: timeout,
-            func: async () => {
-                const out = await predicate();
+    const options = normalizeHelperOptions(timeOrOptions, start);
 
-                if (out === true) {
-                    return true;
-                }
+    return runFiniteInterval<void>(options, async (_counter, complete) => {
+        const out = await predicate();
 
-                resolve();
+        if (out === true) {
+            return true;
+        }
 
-                return false;
-            },
-            onError: reject,
-        });
+        complete(undefined);
 
-        interval.start();
+        return false;
     });
 }
 
@@ -42,39 +183,31 @@ export type UntilPredicate<T> = () => T;
 export type UntilPredicateAsync<T> = () => Promise<T>;
 
 /**
- * Executes a polling mechanism that repeatedly checks a predicate until it resolves to a defined value or a timeout occurs.
- *
- * @param {UntilPredicate<T> | UntilPredicateAsync<T>} predicate - A function or asynchronous function that evaluates the condition to be met. The function should return the desired value once the condition is met or undefined if the condition is not met yet.
- * @param {Duration} timeout - The maximum duration for which the polling should continue before timing out.
- * @param {StartMode} [start='immediate'] - Determines whether the polling starts immediately or with a delay. Defaults to 'immediate'.
- * @return {Promise<T>} A promise that resolves with the value returned by the predicate when its condition is met or rejects if an error occurs.
+ * Repeatedly evaluates a predicate until it resolves to a defined value.
  */
 export function until<T>(
     predicate: UntilPredicate<T> | UntilPredicateAsync<T>,
-    timeout: Duration,
+    time: Duration,
+    start?: StartMode,
+): Promise<T>;
+export function until<T>(predicate: UntilPredicate<T> | UntilPredicateAsync<T>, options: HelperOptions): Promise<T>;
+export function until<T>(
+    predicate: UntilPredicate<T> | UntilPredicateAsync<T>,
+    timeOrOptions: Duration | HelperOptions,
     start: StartMode = 'immediate',
 ): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-        const interval = new Interval({
-            start,
-            time: timeout,
-            func: async () => {
-                const out = await predicate();
+    const options = normalizeHelperOptions(timeOrOptions, start);
 
-                // if result is not available, continue polling
-                if (typeof out === 'undefined') {
-                    return true;
-                }
+    return runFiniteInterval<T>(options, async (_counter, complete) => {
+        const out = await predicate();
 
-                // when result finally is available, stop polling
-                resolve(out);
+        if (typeof out === 'undefined') {
+            return true;
+        }
 
-                return false;
-            },
-            onError: reject,
-        });
+        complete(out);
 
-        interval.start();
+        return false;
     });
 }
 
@@ -83,46 +216,36 @@ export type TimesPredicateAsync = (counter: number) => Promise<void>;
 
 /**
  * Executes a function a specified number of times with a delay between executions.
- *
- * @param {TimesPredicate | TimesPredicateAsync} predicate - A synchronous or asynchronous function
- * to be executed on each iteration. The function receives the current iteration count as an argument.
- * @param {number} amount - The number of times the predicate should be executed. If set to a value less than 0,
- * the method resolves immediately without performing any executions.
- * @param {Duration} timeout - The delay duration between consecutive executions of the predicate.
- * @param {StartMode} [start='immediate'] - Determines how the interval should begin. Defaults to `'immediate'`,
- * which executes the first invocation immediately without waiting for the timeout interval.
- * @return {Promise<void>} Resolves when the predicate has been executed the specified number of times
- * or if the specified amount is less than 0. Rejects if an error occurs during predicate execution.
  */
 export function times(
     predicate: TimesPredicate | TimesPredicateAsync,
     amount: number,
-    timeout: Duration,
+    time: Duration,
+    start?: StartMode,
+): Promise<void>;
+export function times(predicate: TimesPredicate | TimesPredicateAsync, options: TimesOptions): Promise<void>;
+export function times(
+    predicate: TimesPredicate | TimesPredicateAsync,
+    amountOrOptions: number | TimesOptions,
+    time?: Duration,
     start: StartMode = 'immediate',
 ): Promise<void> {
-    if (amount < 0) {
-        return Promise.resolve();
+    const options = normalizeTimesOptions(amountOrOptions, time, start);
+
+    if (options.amount < 0) {
+        return resolveImmediately(undefined, options.signal);
     }
 
-    return new Promise((resolve, reject) => {
-        const interval = new Interval({
-            start,
-            time: timeout,
-            func: async (counter) => {
-                if (counter > amount) {
-                    resolve();
+    return runFiniteInterval<void>(options, async (counter, complete) => {
+        if (counter > options.amount) {
+            complete(undefined);
 
-                    return false;
-                }
+            return false;
+        }
 
-                await predicate(counter);
+        await predicate(counter);
 
-                return true;
-            },
-            onError: reject,
-        });
-
-        interval.start();
+        return true;
     });
 }
 
@@ -131,45 +254,37 @@ export type RetryPredicateAsync<T> = (attempt: number) => Promise<T>;
 const ERR_ATTEMPT_LIMIT_EXCEEDED = 'Attempt limit exceeded';
 
 /**
- * Retries a given predicate function or asynchronous predicate function until a condition is met or a maximum number of attempts is reached.
- *
- * @param {RetryPredicate<T> | RetryPredicateAsync<T>} predicate - The predicate function or async function to be invoked for each retry attempt. The function should return a defined result to be considered successful.
- * @param {number} attempts - The maximum number of retry attempts before failing.
- * @param {Duration} timeout - The duration between each retry attempt.
- * @param {StartMode} [start='immediate'] - Determines whether the retry process starts immediately ('immediate') or after the first timeout period ('delayed').
- * @return {Promise<T>} A promise that resolves with the result of the predicate when it succeeds or rejects if the maximum number of attempts is exceeded or an error occurs.
+ * Retries a predicate until it returns a defined value or the attempt limit is exceeded.
  */
 export function retry<T>(
     predicate: RetryPredicate<T> | RetryPredicateAsync<T>,
     attempts: number,
-    timeout: Duration,
+    time: Duration,
+    start?: StartMode,
+): Promise<T>;
+export function retry<T>(predicate: RetryPredicate<T> | RetryPredicateAsync<T>, options: RetryOptions): Promise<T>;
+export function retry<T>(
+    predicate: RetryPredicate<T> | RetryPredicateAsync<T>,
+    attemptsOrOptions: number | RetryOptions,
+    time?: Duration,
     start: StartMode = 'immediate',
 ): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-        const interval = new Interval({
-            start,
-            time: timeout,
-            func: async (counter) => {
-                if (counter > attempts) {
-                    return Promise.reject(new Error(ERR_ATTEMPT_LIMIT_EXCEEDED));
-                }
+    const options = normalizeRetryOptions(attemptsOrOptions, time, start);
 
-                const out = await predicate(counter);
+    return runFiniteInterval<T>(options, async (counter, complete) => {
+        if (counter > options.attempts) {
+            throw new Error(ERR_ATTEMPT_LIMIT_EXCEEDED);
+        }
 
-                // if result is not available, continue polling
-                if (typeof out === 'undefined') {
-                    return true;
-                }
+        const out = await predicate(counter);
 
-                // when result finally is available, stop polling
-                resolve(out);
+        if (typeof out === 'undefined') {
+            return true;
+        }
 
-                return false;
-            },
-            onError: reject,
-        });
+        complete(out);
 
-        interval.start();
+        return false;
     });
 }
 
@@ -177,65 +292,92 @@ export type PipelinePredicate = (data: any) => void;
 export type PipelinePredicateAsync = (data: any) => Promise<void>;
 
 /**
- * Executes a sequence of predicates asynchronously with a specified timeout between each execution.
- *
- * The function takes an array of predicates, either synchronous or asynchronous, and executes them in sequence.
- * A timeout value specifies the delay between each function execution, and an optional start mode determines whether
- * the interval should begin immediately or after the first delay.
- *
- * @param {Array<PipelinePredicate | PipelinePredicateAsync>} predicates - An array of functions (either synchronous or asynchronous) to execute in sequence.
- * @param {Duration} timeout - The duration of the delay between each predicate execution.
- * @param {StartMode} [start='immediate'] - Specifies whether the execution interval should start immediately or after the first delay.
- * @return {Promise<any>} A promise that resolves with the result of the last predicate in the sequence, or resolves immediately if the predicates array is empty.
+ * Executes an array of predicates sequentially with a delay between executions.
  */
 export function pipeline(
     predicates: Array<PipelinePredicate | PipelinePredicateAsync>,
-    timeout: Duration,
+    time: Duration,
+    start?: StartMode,
+): Promise<any>;
+export function pipeline(
+    predicates: Array<PipelinePredicate | PipelinePredicateAsync>,
+    options: HelperOptions,
+): Promise<any>;
+export function pipeline(
+    predicates: Array<PipelinePredicate | PipelinePredicateAsync>,
+    timeOrOptions: Duration | HelperOptions,
     start: StartMode = 'immediate',
 ): Promise<any> {
     if (!Array.isArray(predicates)) {
         throw new TypeError(`Expected "predicates" to by an array, but got ${typeof predicates}`);
     }
 
+    const options = normalizeHelperOptions(timeOrOptions, start);
+
     if (!predicates.length) {
-        return Promise.resolve();
+        return resolveImmediately(undefined, options.signal);
     }
 
-    return new Promise((resolve, reject) => {
-        const steps = predicates.slice();
-        let data: any = undefined;
+    const steps = predicates.slice();
+    let data: any = undefined;
 
-        const interval = new Interval({
-            start,
-            time: timeout,
-            func: async () => {
-                const step = steps.shift();
+    return runFiniteInterval<any>(options, async (_counter, complete) => {
+        const step = steps.shift();
 
-                if (!step) {
-                    resolve(data);
+        if (!step) {
+            complete(data);
 
-                    return false;
-                }
+            return false;
+        }
 
-                data = await step(data);
+        data = await step(data);
 
-                return true;
-            },
-            onError: reject,
-        });
-
-        interval.start();
+        return true;
     });
 }
 
 /**
- * Pauses the execution of code for a specified amount of time.
+ * Pauses execution for a specified amount of time.
  *
- * @param {number} time - The duration to sleep in milliseconds.
- * @return {Promise<void>} A promise that resolves after the specified duration.
+ * If a signal is provided, aborting it clears the pending timer and rejects with the signal's reason.
  */
-export function sleep(time: number): Promise<void> {
-    return new Promise((resolve) => {
-        setTimeout(resolve, time);
+export function sleep(time: number, options: SleepOptions = {}): Promise<void> {
+    const { signal } = options;
+
+    if (signal?.aborted) {
+        return Promise.reject(getAbortReason(signal));
+    }
+
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+
+        const cleanup = (): void => {
+            if (typeof timer !== 'undefined') {
+                clearTimeout(timer);
+                timer = undefined;
+            }
+
+            signal?.removeEventListener('abort', handleAbort);
+        };
+
+        const finish = (callback: () => void): void => {
+            if (settled) {
+                return;
+            }
+
+            settled = true;
+            cleanup();
+            callback();
+        };
+
+        function handleAbort(): void {
+            if (signal != null) {
+                finish(() => reject(getAbortReason(signal)));
+            }
+        }
+
+        signal?.addEventListener('abort', handleAbort, { once: true });
+        timer = setTimeout(() => finish(resolve), time);
     });
 }

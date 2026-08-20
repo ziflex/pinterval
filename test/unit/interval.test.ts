@@ -84,19 +84,16 @@ describe('Interval', () => {
         });
 
         context('When called more then once', () => {
-            it('should throw an error', () => {
+            it('should be safe', () => {
                 const interval = new Interval({ func: sinon.spy(), time: 200 });
 
-                expect(() => {
-                    interval.stop();
-                }).to.throw(Error);
+                expect(() => interval.stop()).not.to.throw();
 
                 interval.start();
                 interval.stop();
 
-                expect(() => {
-                    interval.stop();
-                }).to.throw(Error);
+                expect(() => interval.stop()).not.to.throw();
+                expect(interval.isRunning).to.be.false;
             });
         });
     });

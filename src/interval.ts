@@ -1,5 +1,4 @@
 const ERR_START = 'Interval is already running';
-const ERR_STOP = 'Interval is already stoped';
 const ERR_MISSED_PARAMS = 'Parameters are required';
 const ERR_FUNC_TYPE = '"func" must be a function';
 const ERR_ONERROR_TYPE = '"onError" must be a function';
@@ -37,7 +36,7 @@ export interface Params {
      * Determines the initiation mode of a process.
      * It can be set to either:
      * - `'immediate'`: The process begins immediately without delay.
-     * - `'delayed'`: The process starts after the first timeout.
+     * - `'delayed'`: The process starts after the first delay.
      */
     start?: StartMode;
 
@@ -53,15 +52,27 @@ export interface Params {
      *
      */
     onError?: ErrorHandler | ErrorHandlerAsync;
+
+    /**
+     * An optional signal that stops the interval when aborted.
+     *
+     * Aborting cannot interrupt a callback that is already executing, but it prevents another callback from being
+     * scheduled.
+     */
+    signal?: AbortSignal;
 }
 
 export class Interval {
     private readonly __func: IntervalFunction | IntervalFunctionAsync;
     private readonly __duration: Duration;
     private readonly __onError?: ErrorHandler | ErrorHandlerAsync;
+    private readonly __signal?: AbortSignal;
     private readonly __startMode: StartMode;
-    private __counter: 0;
+    private __abortHandler?: () => void;
+    private __counter: number;
+    private __generation: number;
     private __isRunning: boolean;
+    private __timer?: ReturnType<typeof setTimeout>;
 
     constructor(params: Params) {
         if (params == null) {
@@ -83,9 +94,11 @@ export class Interval {
         this.__func = params.func;
         this.__duration = params.time;
         this.__onError = params.onError;
+        this.__signal = params.signal;
         this.__startMode = params.start || 'delayed';
         this.__isRunning = false;
         this.__counter = 0;
+        this.__generation = 0;
     }
 
     /**
@@ -106,30 +119,82 @@ export class Interval {
             throw new Error(ERR_START);
         }
 
+        if (this.__signal?.aborted) {
+            return this;
+        }
+
         this.__counter = 0;
         this.__isRunning = true;
-        this.__enqueue();
+        const generation = ++this.__generation;
+
+        this.__attachAbortHandler();
+
+        try {
+            this.__enqueue(generation);
+        } catch (err) {
+            this.stop();
+            throw err;
+        }
 
         return this;
     }
 
     /**
      * Stops the instance.
-     * @throws {Error} Throws an error if the instance is already stopped.
      * @return {Interval} Current instance.
      */
     public stop(): this {
-        if (!this.__isRunning) {
-            throw new Error(ERR_STOP);
-        }
-
         this.__isRunning = false;
+        this.__clearTimer();
+        this.__detachAbortHandler();
 
         return this;
     }
 
-    private __enqueue(): void {
-        if (!this.__isRunning) {
+    private __attachAbortHandler(): void {
+        const signal = this.__signal;
+
+        if (signal == null) {
+            return;
+        }
+
+        if (signal.aborted) {
+            this.stop();
+            return;
+        }
+
+        const handler = (): void => {
+            this.stop();
+        };
+
+        this.__abortHandler = handler;
+        signal.addEventListener('abort', handler, { once: true });
+    }
+
+    private __clearTimer(): void {
+        if (typeof this.__timer === 'undefined') {
+            return;
+        }
+
+        clearTimeout(this.__timer);
+        this.__timer = undefined;
+    }
+
+    private __detachAbortHandler(): void {
+        if (this.__signal == null || this.__abortHandler == null) {
+            return;
+        }
+
+        this.__signal.removeEventListener('abort', this.__abortHandler);
+        this.__abortHandler = undefined;
+    }
+
+    private __isActive(generation: number): boolean {
+        return this.__isRunning && this.__generation === generation;
+    }
+
+    private __enqueue(generation: number): void {
+        if (!this.__isActive(generation)) {
             return;
         }
 
@@ -140,11 +205,19 @@ export class Interval {
             duration = typeof this.__duration !== 'function' ? this.__duration : this.__duration(this.__counter);
         }
 
-        setTimeout(() => this.__call(), duration);
+        const timer = setTimeout(() => {
+            if (this.__timer === timer) {
+                this.__timer = undefined;
+            }
+
+            void this.__call(generation);
+        }, duration);
+
+        this.__timer = timer;
     }
 
-    private async __call(): Promise<void> {
-        if (!this.__isRunning) {
+    private async __call(generation: number): Promise<void> {
+        if (!this.__isActive(generation)) {
             return;
         }
 
@@ -153,20 +226,24 @@ export class Interval {
         try {
             const result = await func(this.__counter);
 
+            if (!this.__isActive(generation)) {
+                return;
+            }
+
             if (result !== false) {
-                this.__enqueue();
+                this.__enqueue(generation);
 
                 return;
             }
 
             this.stop();
         } catch (e) {
-            await this.__handleError(e as Error);
+            await this.__handleError(e as Error, generation);
         }
     }
 
-    private async __handleError(err: Error): Promise<void> {
-        if (!this.__isRunning) {
+    private async __handleError(err: Error, generation: number): Promise<void> {
+        if (!this.__isActive(generation)) {
             // interval was stopped
             return;
         }
@@ -180,13 +257,21 @@ export class Interval {
         try {
             const result = await this.__onError(err);
 
+            if (!this.__isActive(generation)) {
+                return;
+            }
+
             if (result === true) {
-                this.__enqueue();
-            } else {
+                this.__enqueue(generation);
+
+                return;
+            }
+
+            this.stop();
+        } catch {
+            if (this.__isActive(generation)) {
                 this.stop();
             }
-        } catch {
-            this.stop();
         }
     }
 }

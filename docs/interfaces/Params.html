@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Params | pinterval</title><meta name="description" content="Documentation for pinterval"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Params | pinterval</title><meta name="description" content="Documentation for pinterval"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container"><a href="../index.html" class="title">pinterval</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
@@ -13,9 +13,9 @@
 <section class="tsd-panel tsd-comment">
 <div class="tsd-comment tsd-typography"><p>Interval parameters</p>
 </div></section>
-<div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">Params</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#func">func</a><span class="tsd-signature-symbol">:</span> <a href="../types/IntervalFunction.html" class="tsd-signature-type tsd-kind-type-alias">IntervalFunction</a> <span class="tsd-signature-symbol">|</span> <a href="../types/IntervalFunctionAsync.html" class="tsd-signature-type tsd-kind-type-alias">IntervalFunctionAsync</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#onerror">onError</a><span class="tsd-signature-symbol">?:</span> <a href="../types/ErrorHandler.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandler</a> <span class="tsd-signature-symbol">|</span> <a href="../types/ErrorHandlerAsync.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandlerAsync</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#start">start</a><span class="tsd-signature-symbol">?:</span> <a href="../types/StartMode.html" class="tsd-signature-type tsd-kind-type-alias">StartMode</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#time">time</a><span class="tsd-signature-symbol">:</span> <a href="../types/Duration.html" class="tsd-signature-type tsd-kind-type-alias">Duration</a><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
+<div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">Params</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#func">func</a><span class="tsd-signature-symbol">:</span> <a href="../types/IntervalFunction.html" class="tsd-signature-type tsd-kind-type-alias">IntervalFunction</a> <span class="tsd-signature-symbol">|</span> <a href="../types/IntervalFunctionAsync.html" class="tsd-signature-type tsd-kind-type-alias">IntervalFunctionAsync</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#onerror">onError</a><span class="tsd-signature-symbol">?:</span> <a href="../types/ErrorHandler.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandler</a> <span class="tsd-signature-symbol">|</span> <a href="../types/ErrorHandlerAsync.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandlerAsync</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#signal">signal</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#start">start</a><span class="tsd-signature-symbol">?:</span> <a href="../types/StartMode.html" class="tsd-signature-type tsd-kind-type-alias">StartMode</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#time">time</a><span class="tsd-signature-symbol">:</span> <a href="../types/Duration.html" class="tsd-signature-type tsd-kind-type-alias">Duration</a><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/c2b072c8f0ecf2393691217c70545a7bf203f368/src/interval.ts#L19">interval.ts:19</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L18">interval.ts:18</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -25,6 +25,7 @@
 <h3 class="tsd-index-heading tsd-anchor-link" id="properties">Properties<a href="#properties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-index-list"><a href="#func" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>func</span></a>
 <a href="#onerror" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>on<wbr/>Error?</span></a>
+<a href="#signal" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>signal?</span></a>
 <a href="#start" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>start?</span></a>
 <a href="#time" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>time</span></a>
 </div></section></div></details></section></section>
@@ -42,7 +43,7 @@
 </ul>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/c2b072c8f0ecf2393691217c70545a7bf203f368/src/interval.ts#L28">interval.ts:28</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L27">interval.ts:27</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="onerror"><code class="tsd-tag">Optional</code><span>on<wbr/>Error</span><a href="#onerror" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">onError</span><span class="tsd-signature-symbol">?:</span> <a href="../types/ErrorHandler.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandler</a> <span class="tsd-signature-symbol">|</span> <a href="../types/ErrorHandlerAsync.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandlerAsync</a></div>
@@ -60,7 +61,16 @@ capable of handling errors with asynchronous operations.</p>
 </ul>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/c2b072c8f0ecf2393691217c70545a7bf203f368/src/interval.ts#L55">interval.ts:55</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L54">interval.ts:54</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="signal"><code class="tsd-tag">Optional</code><span>signal</span><a href="#signal" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">signal</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span></div>
+<div class="tsd-comment tsd-typography"><p>An optional signal that stops the interval when aborted.</p>
+<p>Aborting cannot interrupt a callback that is already executing, but it prevents another callback from being
+scheduled.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L62">interval.ts:62</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="start"><code class="tsd-tag">Optional</code><span>start</span><a href="#start" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">start</span><span class="tsd-signature-symbol">?:</span> <a href="../types/StartMode.html" class="tsd-signature-type tsd-kind-type-alias">StartMode</a></div>
@@ -68,11 +78,11 @@ capable of handling errors with asynchronous operations.</p>
 It can be set to either:</p>
 <ul>
 <li><code>'immediate'</code>: The process begins immediately without delay.</li>
-<li><code>'delayed'</code>: The process starts after the first timeout.</li>
+<li><code>'delayed'</code>: The process starts after the first delay.</li>
 </ul>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/c2b072c8f0ecf2393691217c70545a7bf203f368/src/interval.ts#L42">interval.ts:42</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L41">interval.ts:41</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="time"><span>time</span><a href="#time" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">time</span><span class="tsd-signature-symbol">:</span> <a href="../types/Duration.html" class="tsd-signature-type tsd-kind-type-alias">Duration</a></div>
@@ -80,7 +90,7 @@ It can be set to either:</p>
 It can be either a number (milliseconds) or a function that returns a number based on the counter.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/c2b072c8f0ecf2393691217c70545a7bf203f368/src/interval.ts#L34">interval.ts:34</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L33">interval.ts:33</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -96,7 +106,7 @@ It can be either a number (milliseconds) or a function that returns a number bas
 <h3>On This Page</h3></summary>
 <div class="tsd-accordion-details">
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
-<div><a href="#func"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>func</span></a><a href="#onerror"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>on<wbr/>Error</span></a><a href="#start"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>start</span></a><a href="#time"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>time</span></a></div></details></div></details></div>
+<div><a href="#func"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>func</span></a><a href="#onerror"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>on<wbr/>Error</span></a><a href="#signal"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>signal</span></a><a href="#start"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>start</span></a><a href="#time"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>time</span></a></div></details></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../modules.html">pinterval</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">

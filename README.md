@@ -20,6 +20,7 @@ A powerful and flexible interval management library that goes beyond JavaScript'
   - [Start Modes](#start-modes)
   - [Auto-Stop Mechanism](#auto-stop-mechanism)
   - [Error Handling](#error-handling)
+  - [Cancellation and Timeouts](#cancellation-and-timeouts)
 - [Helper Functions](#helper-functions)
   - [poll](#poll)
   - [until](#until)
@@ -51,6 +52,7 @@ A powerful and flexible interval management library that goes beyond JavaScript'
 - ✅ **Auto-Stop Mechanism** - Automatically stop intervals based on return values
 - ✅ **Rich Helper Functions** - Pre-built utilities for common patterns (polling, retries, pipelines)
 - ✅ **Backoff Strategies** - Multiple built-in duration functions for sophisticated retry logic
+- ✅ **Cancellation and Timeouts** - Standard `AbortSignal` support and total-lifetime limits
 - ✅ **TypeScript First** - Full TypeScript support with comprehensive type definitions
 - ✅ **Zero Dependencies** - Minimal footprint with absolutely no dependencies
 - ✅ **Production Ready** - Battle-tested and actively maintained
@@ -141,18 +143,20 @@ interface Params {
     time: number | ((counter: number) => number);
     start?: 'immediate' | 'delayed';
     onError?: (err: Error) => boolean | void;
+    signal?: AbortSignal;
 }
 ```
 
 - **func** - Function to execute on each interval. Can be sync or async (returns Promise)
 - **time** - Interval duration in milliseconds or a function that calculates it dynamically
-- **start** - When to execute the first tick: `'delayed'` (default) waits for first timeout, `'immediate'` executes immediately
+- **start** - When to execute the first tick: `'delayed'` (default) waits for the first delay, `'immediate'` executes immediately
 - **onError** - Optional error handler. Return `true` to continue, `false` to stop
+- **signal** - Optional cancellation signal. An already-aborted signal prevents the interval from starting
 
 #### Methods
 
 - **start()** - Starts the interval. Throws if already running.
-- **stop()** - Stops the interval. Throws if already stopped.
+- **stop()** - Stops the interval. Safe to call repeatedly.
 - **isRunning** - Property that returns `true` if the interval is currently running.
 
 ### Start Modes
@@ -160,7 +164,7 @@ interface Params {
 Control when your interval executes for the first time:
 
 ```typescript
-// Delayed start (default): waits for timeout before first execution
+// Delayed start (default): waits for time before first execution
 const delayedInterval = new Interval({
     func: () => console.log('First execution after 1 second'),
     time: 1000,
@@ -282,6 +286,50 @@ interval.start();
 - Interval timing starts **after** async operation completes
 - Return `false` from async function to stop the interval
 
+### Cancellation and Timeouts
+
+`Interval`, `sleep`, and every finite helper accept an optional standard `AbortSignal`. Aborting clears a pending scheduling timer immediately and prevents future executions.
+
+```typescript
+import { Interval, until } from 'pinterval';
+
+const intervalController = new AbortController();
+const interval = new Interval({
+    time: 1000,
+    signal: intervalController.signal,
+    func: async () => {
+        await refreshData();
+    }
+});
+
+interval.start();
+intervalController.abort();
+
+const controller = new AbortController();
+await until(checkReady, {
+    time: 500,
+    signal: controller.signal
+});
+```
+
+For finite helpers, `time` and `timeout` have distinct meanings:
+
+- **time** - Delay between executions; it may be a number or duration function.
+- **timeout** - Optional maximum lifetime for the entire operation, including its initial delay and callback execution.
+- **signal** - External cancellation controlled by the caller. The first of external cancellation and timeout wins.
+
+```typescript
+import { retry } from 'pinterval';
+
+await retry(loadData, {
+    attempts: 10,
+    time: 250,
+    timeout: 10_000
+});
+```
+
+External cancellation rejects with `signal.reason` (normally an `AbortError`), while an overall timeout rejects with a `TimeoutError`. Neither source can forcibly interrupt arbitrary callback code already executing; it stops the helper promptly and prevents another iteration. Pass the external signal to APIs such as `fetch` inside the callback when that work should also be interruptible.
+
 ### Dynamic Duration
 
 Calculate interval duration dynamically based on the iteration count:
@@ -315,19 +363,36 @@ For complex timing strategies, see the [Duration Functions](#duration-functions)
 
 ## Helper Functions
 
-pinterval provides several high-level helper functions for common patterns. All helpers are Promise-based and work seamlessly with async/await.
+pinterval provides several high-level helper functions for common patterns. All helpers are Promise-based, preserve their positional signatures, and also accept object options:
+
+```typescript
+interface HelperOptions {
+    time: number | ((counter: number) => number); // Delay between executions
+    start?: 'immediate' | 'delayed';              // Defaults to 'immediate'
+    signal?: AbortSignal;                         // External cancellation
+    timeout?: number;                             // Maximum total lifetime
+}
+
+interface RetryOptions extends HelperOptions {
+    attempts: number;
+}
+
+interface TimesOptions extends HelperOptions {
+    amount: number;
+}
+```
 
 ### poll
 
-Repeatedly checks a condition until it returns `true`. Perfect for waiting on asynchronous operations. By default, the first check happens immediately.
+Repeatedly checks a condition while it returns `true`, then completes when it returns `false`. By default, the first check happens immediately.
 
 ```typescript
 import { poll } from 'pinterval';
 
-// Wait for a condition to be true (checks immediately, then every 1 second)
+// Keep polling until the status becomes ready
 await poll(async () => {
     const status = await checkStatus();
-    return status === 'ready';
+    return status !== 'ready';
 }, 1000);
 
 console.log('Condition met!');
@@ -337,15 +402,19 @@ console.log('Condition met!');
 ```typescript
 function poll(
     predicate: () => boolean | Promise<boolean>,
-    timeout: number | ((counter: number) => number),
+    time: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
+): Promise<void>
+function poll(
+    predicate: () => boolean | Promise<boolean>,
+    options: HelperOptions
 ): Promise<void>
 ```
 
 **Parameters:**
 
-- **predicate** - Function that returns `true` when condition is met
-- **timeout** - Interval duration in milliseconds or duration function
+- **predicate** - Function that returns `true` to continue polling and `false` to complete
+- **time** - Interval duration in milliseconds or duration function
 - **start** - Start mode: `'immediate'` (default) or `'delayed'`
 
 **Example with immediate start:**
@@ -353,7 +422,7 @@ function poll(
 ```typescript
 // Check immediately, then every 5 seconds (default behavior)
 await poll(
-    async () => (await fetch('/api/status')).ok,
+    async () => !(await fetch('/api/status')).ok,
     5000
 );
 ```
@@ -363,7 +432,7 @@ await poll(
 ```typescript
 // Wait 5 seconds before first check, then every 5 seconds
 await poll(
-    async () => (await fetch('/api/status')).ok,
+    async () => !(await fetch('/api/status')).ok,
     5000,
     'delayed'
 );
@@ -392,25 +461,29 @@ console.log('Data received:', data);
 ```typescript
 function until<T>(
     predicate: () => T | undefined | Promise<T | undefined>,
-    timeout: number | ((counter: number) => number),
+    time: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
+): Promise<T>
+function until<T>(
+    predicate: () => T | undefined | Promise<T | undefined>,
+    options: HelperOptions
 ): Promise<T>
 ```
 
 **Parameters:**
 
 - **predicate** - Function that returns a value when condition is met, or `undefined` to continue polling
-- **timeout** - Interval duration in milliseconds or duration function
+- **time** - Interval duration in milliseconds or duration function
 - **start** - Start mode: `'immediate'` (default) or `'delayed'`
 
 **Key Difference from poll:**
 
-- `poll` - Waits for `true`, returns `void`
+- `poll` - Continues on `true`, completes on `false`, and returns `void`
 - `until` - Waits for non-`undefined` value, returns that value
 
 ### retry
 
-Executes a function with retry logic. Stops after reaching the maximum attempts or when a truthy value is returned.
+Executes a function with retry logic. Stops after reaching the maximum attempts or when a defined value is returned.
 
 ```typescript
 import { retry } from 'pinterval';
@@ -434,8 +507,12 @@ const result = await retry(
 function retry<T>(
     predicate: (attempt: number) => T | Promise<T>,
     attempts: number,
-    timeout: number | ((counter: number) => number),
+    time: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
+): Promise<T>
+function retry<T>(
+    predicate: (attempt: number) => T | Promise<T>,
+    options: RetryOptions
 ): Promise<T>
 ```
 
@@ -443,8 +520,18 @@ function retry<T>(
 
 - **predicate** - Function to retry that receives the current attempt number. Return `undefined` to retry, or a value to resolve
 - **attempts** - Maximum number of retry attempts
-- **timeout** - Interval between retries
+- **time** - Interval between retries
 - **start** - Start mode: `'immediate'` (default) or `'delayed'`
+
+Use object options to combine retry limits, delay, external cancellation, and an overall timeout:
+
+```typescript
+await retry(loadData, {
+    attempts: 10,
+    time: 250,
+    timeout: 10_000
+});
+```
 
 **With exponential backoff:**
 
@@ -489,8 +576,12 @@ console.log('All executions completed!');
 function times(
     predicate: (counter: number) => void | Promise<void>,
     amount: number,
-    timeout: number | ((counter: number) => number),
+    time: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
+): Promise<void>
+function times(
+    predicate: (counter: number) => void | Promise<void>,
+    options: TimesOptions
 ): Promise<void>
 ```
 
@@ -498,7 +589,7 @@ function times(
 
 - **predicate** - Function to execute. Receives counter (1-based) as parameter
 - **amount** - Number of times to execute
-- **timeout** - Interval between executions
+- **time** - Interval between executions
 - **start** - Start mode: `'immediate'` (default) or `'delayed'`
 
 ### pipeline
@@ -522,15 +613,19 @@ console.log(result); // 20
 ```typescript
 function pipeline(
     predicates: Array<(data: any) => any | Promise<any>>,
-    timeout: number | ((counter: number) => number),
+    time: number | ((counter: number) => number),
     start?: 'immediate' | 'delayed'
+): Promise<any>
+function pipeline(
+    predicates: Array<(data: any) => any | Promise<any>>,
+    options: HelperOptions
 ): Promise<any>
 ```
 
 **Important Notes:**
 
-- First function executes with 0 timeout when `start: 'immediate'` (default)
-- Each subsequent function waits for the timeout
+- First function executes without a delay when `start: 'immediate'` (default)
+- Each subsequent function waits for `time`
 - Output of each function is passed to the next
 - Perfect for multi-stage data processing
 
@@ -562,11 +657,21 @@ import { sleep } from 'pinterval';
 console.log('Starting...');
 await sleep(2000);
 console.log('2 seconds later...');
+
+const controller = new AbortController();
+const pendingSleep = sleep(5000, { signal: controller.signal });
+controller.abort();
+
+try {
+    await pendingSleep;
+} catch (err) {
+    console.log(err === controller.signal.reason); // true
+}
 ```
 
 **Signature:**
 ```typescript
-function sleep(time: number): Promise<void>
+function sleep(time: number, options?: { signal?: AbortSignal }): Promise<void>
 ```
 
 ## Duration Functions
@@ -946,14 +1051,14 @@ async function waitForJobCompletion(jobId: string) {
         
         if (job.status === 'completed') {
             console.log('Job completed successfully!');
-            return true;
+            return false;
         }
         
         if (job.status === 'failed') {
             throw new Error('Job failed!');
         }
         
-        return false; // Keep polling
+        return true; // Keep polling
     }, 2000, 'immediate');
 }
 
@@ -1410,11 +1515,11 @@ class MyComponent {
 The default start mode is now `'immediate'` for most helper functions, which is ideal for most use cases:
 
 ```typescript
-// ✅ Default behavior: Check immediately, then retry
-await poll(checkStatus, 1000); // Immediate by default
+// ✅ Default behavior: Check immediately, then retry while the predicate returns true
+await poll(() => !checkStatus(), 1000); // Immediate by default
 
 // Use 'delayed' when you specifically want to wait before the first execution
-await poll(checkStatus, 1000, 'delayed'); // Wait 1s before first check
+await poll(() => !checkStatus(), 1000, 'delayed'); // Wait 1s before first check
 ```
 
 **When to use 'delayed' mode:**
@@ -1439,7 +1544,7 @@ const interval = new Interval({
 
 ```typescript
 // Wait for service to be ready, then start processing
-await poll(async () => await isServiceReady(), 1000);
+await poll(async () => !(await isServiceReady()), 1000);
 
 // Now run the main task with retries
 await times(async (counter) => {
