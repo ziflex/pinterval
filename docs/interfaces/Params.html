@@ -15,7 +15,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">Params</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#func">func</a><span class="tsd-signature-symbol">:</span> <a href="../types/IntervalFunction.html" class="tsd-signature-type tsd-kind-type-alias">IntervalFunction</a> <span class="tsd-signature-symbol">|</span> <a href="../types/IntervalFunctionAsync.html" class="tsd-signature-type tsd-kind-type-alias">IntervalFunctionAsync</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#onerror">onError</a><span class="tsd-signature-symbol">?:</span> <a href="../types/ErrorHandler.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandler</a> <span class="tsd-signature-symbol">|</span> <a href="../types/ErrorHandlerAsync.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandlerAsync</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#signal">signal</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#start">start</a><span class="tsd-signature-symbol">?:</span> <a href="../types/StartMode.html" class="tsd-signature-type tsd-kind-type-alias">StartMode</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#time">time</a><span class="tsd-signature-symbol">:</span> <a href="../types/Duration.html" class="tsd-signature-type tsd-kind-type-alias">Duration</a><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L18">interval.ts:18</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L60">src/interval.ts:60</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -36,14 +36,11 @@
 <h3 class="tsd-anchor-link" id="func"><span>func</span><a href="#func" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">func</span><span class="tsd-signature-symbol">:</span> <a href="../types/IntervalFunction.html" class="tsd-signature-type tsd-kind-type-alias">IntervalFunction</a> <span class="tsd-signature-symbol">|</span> <a href="../types/IntervalFunctionAsync.html" class="tsd-signature-type tsd-kind-type-alias">IntervalFunctionAsync</a></div>
 <div class="tsd-comment tsd-typography"><p>Represents a function that operates on intervals. This function can be either synchronous or asynchronous.</p>
-<p>The <code>func</code> variable can hold two types of functions:</p>
-<ul>
-<li><code>IntervalFunction</code>: A synchronous function that performs operations or computations within a specified interval.</li>
-<li><code>IntervalFunctionAsync</code>: An asynchronous function that performs similar operations but allows for asynchronous processing.</li>
-</ul>
+<p>The callback receives an <code>IntervalContext</code> with the current iteration, elapsed run time, and effective
+cancellation signal.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L27">interval.ts:27</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L67">src/interval.ts:67</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="onerror"><code class="tsd-tag">Optional</code><span>on<wbr/>Error</span><a href="#onerror" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">onError</span><span class="tsd-signature-symbol">?:</span> <a href="../types/ErrorHandler.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandler</a> <span class="tsd-signature-symbol">|</span> <a href="../types/ErrorHandlerAsync.html" class="tsd-signature-type tsd-kind-type-alias">ErrorHandlerAsync</a></div>
@@ -61,16 +58,16 @@ capable of handling errors with asynchronous operations.</p>
 </ul>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L54">interval.ts:54</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L94">src/interval.ts:94</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="signal"><code class="tsd-tag">Optional</code><span>signal</span><a href="#signal" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">signal</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span></div>
-<div class="tsd-comment tsd-typography"><p>An optional signal that stops the interval when aborted.</p>
-<p>Aborting cannot interrupt a callback that is already executing, but it prevents another callback from being
-scheduled.</p>
+<div class="tsd-comment tsd-typography"><p>An optional external signal that cancels the interval.</p>
+<p>The callback receives a run-owned signal that also aborts when <code>stop()</code> is called. Cancellation cannot forcibly
+interrupt arbitrary callback code, but signal-aware work can stop cooperatively.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L62">interval.ts:62</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L102">src/interval.ts:102</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="start"><code class="tsd-tag">Optional</code><span>start</span><a href="#start" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">start</span><span class="tsd-signature-symbol">?:</span> <a href="../types/StartMode.html" class="tsd-signature-type tsd-kind-type-alias">StartMode</a></div>
@@ -82,7 +79,7 @@ It can be set to either:</p>
 </ul>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L41">interval.ts:41</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L81">src/interval.ts:81</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="time"><span>time</span><a href="#time" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">time</span><span class="tsd-signature-symbol">:</span> <a href="../types/Duration.html" class="tsd-signature-type tsd-kind-type-alias">Duration</a></div>
@@ -90,7 +87,7 @@ It can be set to either:</p>
 It can be either a number (milliseconds) or a function that returns a number based on the counter.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L33">interval.ts:33</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L73">src/interval.ts:73</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

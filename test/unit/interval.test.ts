@@ -458,9 +458,9 @@ describe('Interval', () => {
             it('should respect counter in immediate mode', async () => {
                 const spyCounter = sinon.spy();
                 const interval = new Interval({
-                    func: (counter) => {
-                        spyCounter(counter);
-                        return counter < 3;
+                    func: ({ iteration }) => {
+                        spyCounter(iteration);
+                        return iteration < 3;
                     },
                     time: 100,
                     start: 'immediate',

@@ -1,16 +1,58 @@
+import { getAbortReason } from './cancellation';
+import { AbortError } from './errors';
+
 const ERR_START = 'Interval is already running';
 const ERR_MISSED_PARAMS = 'Parameters are required';
 const ERR_FUNC_TYPE = '"func" must be a function';
 const ERR_ONERROR_TYPE = '"onError" must be a function';
 const ERR_TIME_TYPE = '"time" must be either a number or a function';
 
-export type IntervalFunction = (() => boolean | void) | ((counter: number) => boolean | void);
-export type IntervalFunctionAsync = (() => Promise<boolean | void>) | ((counter: number) => Promise<boolean | void>);
+export type IntervalState = 'idle' | 'running' | 'paused' | 'stopped';
+
+export interface IntervalContext {
+    /** The current execution number, starting at 1 for each run. */
+    readonly iteration: number;
+
+    /** Wall-clock milliseconds since the current run started, including paused time. */
+    readonly elapsed: number;
+
+    /** The effective cancellation signal for the current run. */
+    readonly signal: AbortSignal;
+}
+
+export type IntervalFunction = (context: IntervalContext) => boolean | void;
+export type IntervalFunctionAsync = (context: IntervalContext) => Promise<boolean | void>;
 export type ErrorHandler = (err: Error) => boolean | void;
 export type ErrorHandlerAsync = (err: Error) => Promise<boolean | void>;
 export type DurationFunction = (counter: number) => number;
 export type Duration = DurationFunction | number;
 export type StartMode = 'immediate' | 'delayed';
+
+interface PendingExecution {
+    readonly iteration: number;
+    readonly delay: number;
+}
+
+interface RunState {
+    state: Exclude<IntervalState, 'idle'>;
+    iteration: number;
+    readonly startedAt: number;
+    readonly controller: AbortController;
+    readonly done: Promise<void>;
+    readonly resolveDone: () => void;
+    readonly rejectDone: (reason: unknown) => void;
+    settled: boolean;
+    needsSchedule: boolean;
+    pending?: PendingExecution;
+    timer?: ReturnType<typeof setTimeout>;
+    removeExternalAbortHandler: () => void;
+}
+
+interface Settlement {
+    readonly type: 'resolve' | 'reject';
+    readonly reason?: unknown;
+    readonly abort?: boolean;
+}
 
 /**
  * Interval parameters
@@ -19,10 +61,8 @@ export interface Params {
     /**
      * Represents a function that operates on intervals. This function can be either synchronous or asynchronous.
      *
-     * The `func` variable can hold two types of functions:
-     * - `IntervalFunction`: A synchronous function that performs operations or computations within a specified interval.
-     * - `IntervalFunctionAsync`: An asynchronous function that performs similar operations but allows for asynchronous processing.
-     *
+     * The callback receives an `IntervalContext` with the current iteration, elapsed run time, and effective
+     * cancellation signal.
      */
     func: IntervalFunction | IntervalFunctionAsync;
 
@@ -54,10 +94,10 @@ export interface Params {
     onError?: ErrorHandler | ErrorHandlerAsync;
 
     /**
-     * An optional signal that stops the interval when aborted.
+     * An optional external signal that cancels the interval.
      *
-     * Aborting cannot interrupt a callback that is already executing, but it prevents another callback from being
-     * scheduled.
+     * The callback receives a run-owned signal that also aborts when `stop()` is called. Cancellation cannot forcibly
+     * interrupt arbitrary callback code, but signal-aware work can stop cooperatively.
      */
     signal?: AbortSignal;
 }
@@ -68,11 +108,9 @@ export class Interval {
     private readonly __onError?: ErrorHandler | ErrorHandlerAsync;
     private readonly __signal?: AbortSignal;
     private readonly __startMode: StartMode;
-    private __abortHandler?: () => void;
-    private __counter: number;
-    private __generation: number;
-    private __isRunning: boolean;
-    private __timer?: ReturnType<typeof setTimeout>;
+    private __done: Promise<void>;
+    private __run?: RunState;
+    private __executingRun?: RunState;
 
     constructor(params: Params) {
         if (params == null) {
@@ -96,43 +134,56 @@ export class Interval {
         this.__onError = params.onError;
         this.__signal = params.signal;
         this.__startMode = params.start || 'delayed';
-        this.__isRunning = false;
-        this.__counter = 0;
-        this.__generation = 0;
+        this.__done = Promise.resolve();
+    }
+
+    /** The lifecycle state of the current run, or `idle` before the first start. */
+    public get state(): IntervalState {
+        return this.__run?.state ?? 'idle';
     }
 
     /**
-     * Returns value that defines whether the instance is running.
-     * @return {Boolean} Value that defines whether the instance is running.
+     * The completion promise for the current run.
+     *
+     * It is resolved before the first start. Every call to `start()` creates a new promise that resolves on natural
+     * completion or `stop()` and rejects on external cancellation or an unhandled execution error.
      */
+    public get done(): Promise<void> {
+        return this.__done;
+    }
+
+    /** Whether the current run is actively executing or waiting for its next execution. */
     public get isRunning(): boolean {
-        return this.__isRunning;
+        return this.state === 'running';
     }
 
     /**
-     * Starts the instance.
-     * @throws {Error} Throws an error if the instance is already running.
+     * Starts a new run.
+     * @throws {Error} Throws an error if the current run is running or paused.
      * @return {Interval} Current instance.
      */
     public start(): this {
-        if (this.__isRunning) {
+        if (this.state === 'running' || this.state === 'paused') {
             throw new Error(ERR_START);
         }
 
+        const run = this.__createRun();
+        this.__run = run;
+        this.__done = run.done;
+
         if (this.__signal?.aborted) {
+            const reason = getAbortReason(this.__signal);
+            this.__finish(run, { type: 'reject', reason, abort: true });
+
             return this;
         }
 
-        this.__counter = 0;
-        this.__isRunning = true;
-        const generation = ++this.__generation;
-
-        this.__attachAbortHandler();
+        this.__attachExternalAbortHandler(run);
 
         try {
-            this.__enqueue(generation);
+            this.__schedule(run);
         } catch (err) {
-            this.stop();
+            this.__finish(run, { type: 'reject', reason: err });
             throw err;
         }
 
@@ -140,138 +191,274 @@ export class Interval {
     }
 
     /**
-     * Stops the instance.
+     * Stops the current run, aborts its effective signal, and resolves its completion promise.
      * @return {Interval} Current instance.
      */
     public stop(): this {
-        this.__isRunning = false;
-        this.__clearTimer();
-        this.__detachAbortHandler();
+        const run = this.__run;
+
+        if (run == null || run.state === 'stopped') {
+            return this;
+        }
+
+        this.__finish(run, {
+            type: 'resolve',
+            reason: new AbortError('The interval was stopped'),
+            abort: true,
+        });
 
         return this;
     }
 
-    private __attachAbortHandler(): void {
+    /**
+     * Pauses the current run without completing it or resetting its iteration.
+     * @return {Interval} Current instance.
+     */
+    public pause(): this {
+        const run = this.__run;
+
+        if (run == null || run.state !== 'running') {
+            return this;
+        }
+
+        run.state = 'paused';
+        this.__clearTimer(run, false);
+
+        return this;
+    }
+
+    /**
+     * Resumes a paused run after one full normal delay without resetting its progress.
+     * @return {Interval} Current instance.
+     */
+    public resume(): this {
+        const run = this.__run;
+
+        if (run == null || run.state !== 'paused') {
+            return this;
+        }
+
+        run.state = 'running';
+        this.__scheduleCurrentRun();
+
+        return this;
+    }
+
+    private __createRun(): RunState {
+        let resolveDone!: () => void;
+        let rejectDone!: (reason: unknown) => void;
+        const done = new Promise<void>((resolve, reject) => {
+            resolveDone = resolve;
+            rejectDone = reject;
+        });
+
+        // Keep the original promise observable while preventing a delayed consumer from causing an unhandled rejection.
+        void done.catch(() => undefined);
+
+        return {
+            state: 'running',
+            iteration: 0,
+            startedAt: Date.now(),
+            controller: new AbortController(),
+            done,
+            resolveDone,
+            rejectDone,
+            settled: false,
+            needsSchedule: true,
+            removeExternalAbortHandler: () => undefined,
+        };
+    }
+
+    private __attachExternalAbortHandler(run: RunState): void {
         const signal = this.__signal;
 
         if (signal == null) {
             return;
         }
 
-        if (signal.aborted) {
-            this.stop();
-            return;
-        }
-
         const handler = (): void => {
-            this.stop();
+            const reason = getAbortReason(signal);
+            this.__finish(run, { type: 'reject', reason, abort: true });
         };
 
-        this.__abortHandler = handler;
         signal.addEventListener('abort', handler, { once: true });
+        run.removeExternalAbortHandler = (): void => signal.removeEventListener('abort', handler);
     }
 
-    private __clearTimer(): void {
-        if (typeof this.__timer === 'undefined') {
+    private __finish(run: RunState, settlement: Settlement): void {
+        if (this.__run !== run || run.settled) {
             return;
         }
 
-        clearTimeout(this.__timer);
-        this.__timer = undefined;
+        run.settled = true;
+        run.state = 'stopped';
+        run.needsSchedule = false;
+        run.pending = undefined;
+        this.__clearTimer(run, true);
+        run.removeExternalAbortHandler();
+        run.removeExternalAbortHandler = () => undefined;
+
+        if (settlement.type === 'resolve') {
+            run.resolveDone();
+        } else {
+            run.rejectDone(settlement.reason);
+        }
+
+        if (settlement.abort === true && !run.controller.signal.aborted) {
+            run.controller.abort(settlement.reason);
+        }
     }
 
-    private __detachAbortHandler(): void {
-        if (this.__signal == null || this.__abortHandler == null) {
+    private __isCurrentRunActive(run: RunState): boolean {
+        return this.__run === run && run.state !== 'stopped';
+    }
+
+    private __clearTimer(run: RunState, discardPending: boolean): void {
+        if (typeof run.timer !== 'undefined') {
+            clearTimeout(run.timer);
+            run.timer = undefined;
+        }
+
+        if (discardPending) {
+            run.pending = undefined;
+        }
+    }
+
+    private __schedule(run: RunState): void {
+        if (
+            this.__run !== run ||
+            run.state !== 'running' ||
+            typeof run.timer !== 'undefined' ||
+            this.__executingRun != null
+        ) {
             return;
         }
 
-        this.__signal.removeEventListener('abort', this.__abortHandler);
-        this.__abortHandler = undefined;
-    }
+        let pending = run.pending;
 
-    private __isActive(generation: number): boolean {
-        return this.__isRunning && this.__generation === generation;
-    }
+        if (pending == null) {
+            if (!run.needsSchedule) {
+                return;
+            }
 
-    private __enqueue(generation: number): void {
-        if (!this.__isActive(generation)) {
-            return;
-        }
+            const iteration = run.iteration + 1;
+            let delay = 0;
 
-        this.__counter++;
-        let duration = 0;
+            if (this.__startMode === 'delayed' || iteration > 1) {
+                delay = typeof this.__duration !== 'function' ? this.__duration : this.__duration(iteration);
+            }
 
-        if (this.__startMode === 'delayed' || this.__counter > 1) {
-            duration = typeof this.__duration !== 'function' ? this.__duration : this.__duration(this.__counter);
+            pending = { iteration, delay };
+            run.pending = pending;
+            run.needsSchedule = false;
         }
 
         const timer = setTimeout(() => {
-            if (this.__timer === timer) {
-                this.__timer = undefined;
+            if (run.timer === timer) {
+                run.timer = undefined;
             }
 
-            void this.__call(generation);
-        }, duration);
+            if (this.__run !== run || run.state !== 'running' || run.pending !== pending) {
+                return;
+            }
 
-        this.__timer = timer;
+            run.pending = undefined;
+            run.iteration = pending.iteration;
+            void this.__execute(run);
+        }, pending.delay);
+
+        run.timer = timer;
     }
 
-    private async __call(generation: number): Promise<void> {
-        if (!this.__isActive(generation)) {
+    private __scheduleCurrentRun(): void {
+        const run = this.__run;
+
+        if (run == null) {
             return;
         }
 
-        const func = this.__func;
-
         try {
-            const result = await func(this.__counter);
-
-            if (!this.__isActive(generation)) {
-                return;
-            }
-
-            if (result !== false) {
-                this.__enqueue(generation);
-
-                return;
-            }
-
-            this.stop();
-        } catch (e) {
-            await this.__handleError(e as Error, generation);
+            this.__schedule(run);
+        } catch (err) {
+            this.__finish(run, { type: 'reject', reason: err });
         }
     }
 
-    private async __handleError(err: Error, generation: number): Promise<void> {
-        if (!this.__isActive(generation)) {
-            // interval was stopped
+    private async __execute(run: RunState): Promise<void> {
+        if (!this.__isCurrentRunActive(run) || this.__executingRun != null) {
+            return;
+        }
+
+        this.__executingRun = run;
+
+        try {
+            const context: IntervalContext = {
+                iteration: run.iteration,
+                elapsed: Date.now() - run.startedAt,
+                signal: run.controller.signal,
+            };
+
+            let result: boolean | void;
+
+            try {
+                result = await this.__func(context);
+            } catch (err) {
+                await this.__handleError(err as Error, run);
+
+                return;
+            }
+
+            if (!this.__isCurrentRunActive(run)) {
+                return;
+            }
+
+            if (result === false) {
+                this.__finish(run, { type: 'resolve' });
+
+                return;
+            }
+
+            run.needsSchedule = true;
+        } finally {
+            if (this.__executingRun === run) {
+                this.__executingRun = undefined;
+            }
+
+            this.__scheduleCurrentRun();
+        }
+    }
+
+    private async __handleError(err: Error, run: RunState): Promise<void> {
+        if (!this.__isCurrentRunActive(run)) {
             return;
         }
 
         if (this.__onError == null) {
-            this.stop();
+            this.__finish(run, { type: 'reject', reason: err });
 
             return;
         }
 
+        let result: boolean | void;
+
         try {
-            const result = await this.__onError(err);
+            result = await this.__onError(err);
+        } catch (handlerError) {
+            this.__finish(run, { type: 'reject', reason: handlerError });
 
-            if (!this.__isActive(generation)) {
-                return;
-            }
-
-            if (result === true) {
-                this.__enqueue(generation);
-
-                return;
-            }
-
-            this.stop();
-        } catch {
-            if (this.__isActive(generation)) {
-                this.stop();
-            }
+            return;
         }
+
+        if (!this.__isCurrentRunActive(run)) {
+            return;
+        }
+
+        if (result === true) {
+            run.needsSchedule = true;
+
+            return;
+        }
+
+        this.__finish(run, { type: 'resolve' });
     }
 }

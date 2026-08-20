@@ -11,7 +11,7 @@
 <li><a href="" aria-current="page">Interval</a></li></ul>
 <h1>Class Interval</h1></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L65">interval.ts:65</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L105">src/interval.ts:105</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -23,11 +23,15 @@
 </div></section>
 <section class="tsd-index-section">
 <h3 class="tsd-index-heading tsd-anchor-link" id="accessors">Accessors<a href="#accessors" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
-<div class="tsd-index-list"><a href="#isrunning" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>is<wbr/>Running</span></a>
+<div class="tsd-index-list"><a href="#done" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>done</span></a>
+<a href="#isrunning" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>is<wbr/>Running</span></a>
+<a href="#state" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>state</span></a>
 </div></section>
 <section class="tsd-index-section">
 <h3 class="tsd-index-heading tsd-anchor-link" id="methods">Methods<a href="#methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
-<div class="tsd-index-list"><a href="#start" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>start</span></a>
+<div class="tsd-index-list"><a href="#pause" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>pause</span></a>
+<a href="#resume" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>resume</span></a>
+<a href="#start" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>start</span></a>
 <a href="#stop" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>stop</span></a>
 </div></section></div></details></section></section>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -45,53 +49,100 @@
 <li><span><span class="tsd-kind-parameter">params</span>: <a href="../interfaces/Params.html" class="tsd-signature-type tsd-kind-interface">Params</a></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">Interval</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L77">interval.ts:77</a></li></ul></aside></div></li></ul></section></section></details>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L115">src/interval.ts:115</a></li></ul></aside></div></li></ul></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Accessors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="accessors-1">Accessors<a href="#accessors-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="done"><span>done</span><a href="#done" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li>
+<div class="tsd-signature" id="donedone"><span class="tsd-signature-keyword">get</span> <span class="tsd-kind-get-signature">done</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>The completion promise for the current run.</p>
+<p>It is resolved before the first start. Every call to <code>start()</code> creates a new promise that resolves on natural
+completion or <code>stop()</code> and rejects on external cancellation or an unhandled execution error.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L151">src/interval.ts:151</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="isrunning"><span>is<wbr/>Running</span><a href="#isrunning" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li>
 <div class="tsd-signature" id="isrunningisrunning"><span class="tsd-signature-keyword">get</span> <span class="tsd-kind-get-signature">isRunning</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-description">
-<div class="tsd-comment tsd-typography"><p>Returns value that defines whether the instance is running.</p>
+<div class="tsd-comment tsd-typography"><p>Whether the current run is actively executing or waiting for its next execution.</p>
 </div>
-<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><p>Value that defines whether the instance is running.</p>
-<aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L108">interval.ts:108</a></li></ul></aside></div></li></ul></section></section></details>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L156">src/interval.ts:156</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="state"><span>state</span><a href="#state" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li>
+<div class="tsd-signature" id="statestate"><span class="tsd-signature-keyword">get</span> <span class="tsd-kind-get-signature">state</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="../types/IntervalState.html" class="tsd-signature-type tsd-kind-type-alias">IntervalState</a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>The lifecycle state of the current run, or <code>idle</code> before the first start.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <a href="../types/IntervalState.html" class="tsd-signature-type tsd-kind-type-alias">IntervalState</a></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L141">src/interval.ts:141</a></li></ul></aside></div></li></ul></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="pause"><span>pause</span><a href="#pause" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="pause-1"><span class="tsd-kind-call-signature">pause</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#pause-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Pauses the current run without completing it or resetting its iteration.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>Current instance.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L217">src/interval.ts:217</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="resume"><span>resume</span><a href="#resume" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="resume-1"><span class="tsd-kind-call-signature">resume</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#resume-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Resumes a paused run after one full normal delay without resetting its progress.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>Current instance.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L234">src/interval.ts:234</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="start"><span>start</span><a href="#start" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
 <div class="tsd-signature tsd-anchor-link" id="start-1"><span class="tsd-kind-call-signature">start</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#start-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
-<div class="tsd-comment tsd-typography"><p>Starts the instance.</p>
+<div class="tsd-comment tsd-typography"><p>Starts a new run.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>Current instance.</p>
 
 <div class="tsd-comment tsd-typography">
 <div class="tsd-tag-throws">
-<h4 class="tsd-anchor-link" id="throws">Throws<a href="#throws" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p>Throws an error if the instance is already running.</p>
+<h4 class="tsd-anchor-link" id="throws">Throws<a href="#throws" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p>Throws an error if the current run is running or paused.</p>
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L117">interval.ts:117</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L165">src/interval.ts:165</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="stop"><span>stop</span><a href="#stop" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
 <div class="tsd-signature tsd-anchor-link" id="stop-1"><span class="tsd-kind-call-signature">stop</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#stop-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
-<div class="tsd-comment tsd-typography"><p>Stops the instance.</p>
+<div class="tsd-comment tsd-typography"><p>Stops the current run, aborts its effective signal, and resolves its completion promise.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>Current instance.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/1e74814f07c58cc924d668a2b155749269f2811e/src/interval.ts#L146">interval.ts:146</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/688a80cc1c0ed50eb1606a6b4a37d647fba1f5c7/src/interval.ts#L197">src/interval.ts:197</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -109,9 +160,9 @@
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Constructors</summary>
 <div><a href="#constructor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a></div></details>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Accessors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Accessors</summary>
-<div><a href="#isrunning"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>is<wbr/>Running</span></a></div></details>
+<div><a href="#done"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>done</span></a><a href="#isrunning"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>is<wbr/>Running</span></a><a href="#state"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>state</span></a></div></details>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
-<div><a href="#start"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>start</span></a><a href="#stop"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>stop</span></a></div></details></div></details></div>
+<div><a href="#pause"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>pause</span></a><a href="#resume"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>resume</span></a><a href="#start"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>start</span></a><a href="#stop"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>stop</span></a></div></details></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../modules.html">pinterval</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">

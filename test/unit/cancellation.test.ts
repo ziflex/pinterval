@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon, { SinonFakeTimers } from 'sinon';
 
-import { Interval, pipeline, poll, retry, sleep, times, until } from '../../src';
+import { AbortError, Interval, pipeline, poll, retry, sleep, TimeoutError, times, until } from '../../src';
 
 function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
     return promise.then(
@@ -19,6 +19,28 @@ describe('Cancellation and timeouts', () => {
 
     afterEach(() => {
         sinon.restore();
+    });
+
+    describe('errors', () => {
+        it('exposes cross-runtime abort and timeout errors', () => {
+            const abortError = new AbortError();
+            const timeoutError = new TimeoutError();
+
+            expect(abortError).to.be.instanceOf(Error);
+            expect(abortError).to.be.instanceOf(AbortError);
+            expect(abortError.name).to.equal('AbortError');
+            expect(abortError.message).to.equal('The operation was aborted');
+
+            expect(timeoutError).to.be.instanceOf(Error);
+            expect(timeoutError).to.be.instanceOf(TimeoutError);
+            expect(timeoutError.name).to.equal('TimeoutError');
+            expect(timeoutError.message).to.equal('The operation timed out');
+        });
+
+        it('supports custom messages', () => {
+            expect(new AbortError('custom abort').message).to.equal('custom abort');
+            expect(new TimeoutError('custom timeout').message).to.equal('custom timeout');
+        });
     });
 
     describe('sleep', () => {
@@ -74,15 +96,25 @@ describe('Cancellation and timeouts', () => {
             expect(removeListener.calledWith('abort')).to.be.true;
         });
 
-        it('uses the standard abort reason by default', async () => {
+        it('preserves the host default abort reason', async () => {
             const controller = new AbortController();
             const promise = sleep(100, { signal: controller.signal });
 
             controller.abort();
             const err = await rejectionOf(promise);
 
-            expect(err).to.be.instanceOf(DOMException);
-            expect((err as DOMException).name).to.equal('AbortError');
+            expect(err).to.equal(controller.signal.reason);
+            expect((err as Error).name).to.equal('AbortError');
+        });
+
+        it('creates an AbortError when an aborted signal has no reason', async () => {
+            const signal = { aborted: true, reason: undefined } as AbortSignal;
+
+            const err = await rejectionOf(sleep(100, { signal }));
+
+            expect(err).to.be.instanceOf(AbortError);
+            expect((err as AbortError).name).to.equal('AbortError');
+            expect(clock.countTimers()).to.equal(0);
         });
 
         it('preserves an explicitly supplied null abort reason', async () => {
@@ -305,8 +337,8 @@ describe('Cancellation and timeouts', () => {
                 const err = await rejection;
                 await clock.tickAsync(1_000);
 
-                expect(err).to.be.instanceOf(DOMException);
-                expect((err as DOMException).name).to.equal('TimeoutError');
+                expect(err).to.be.instanceOf(TimeoutError);
+                expect((err as TimeoutError).name).to.equal('TimeoutError');
                 expect(controller.signal.aborted).to.be.false;
                 expect(func.callCount).to.equal(1);
                 expect(clock.countTimers()).to.equal(0);
@@ -373,7 +405,7 @@ describe('Cancellation and timeouts', () => {
             const err = await timeoutRejection;
             timeoutFirst.abort(reason);
 
-            expect((err as DOMException).name).to.equal('TimeoutError');
+            expect(err).to.be.instanceOf(TimeoutError);
             expect(clock.countTimers()).to.equal(0);
         });
 
@@ -389,7 +421,7 @@ describe('Cancellation and timeouts', () => {
             await clock.tickAsync(50);
 
             const err = await rejection;
-            expect((err as DOMException).name).to.equal('TimeoutError');
+            expect(err).to.be.instanceOf(TimeoutError);
             expect(func.callCount).to.equal(0);
             expect(clock.countTimers()).to.equal(0);
         });
@@ -412,7 +444,7 @@ describe('Cancellation and timeouts', () => {
             release?.('late');
             await clock.tickAsync(1_000);
 
-            expect((err as DOMException).name).to.equal('TimeoutError');
+            expect(err).to.be.instanceOf(TimeoutError);
             expect(func.callCount).to.equal(1);
             expect(clock.countTimers()).to.equal(0);
         });

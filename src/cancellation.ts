@@ -1,16 +1,16 @@
+import { AbortError, TimeoutError } from './errors';
+
 export interface CancellationScope {
     readonly signal?: AbortSignal;
     dispose(): void;
 }
 
 export function getAbortReason(signal: AbortSignal): unknown {
-    return typeof signal.reason === 'undefined'
-        ? new DOMException('The operation was aborted', 'AbortError')
-        : signal.reason;
+    return typeof signal.reason === 'undefined' ? new AbortError() : signal.reason;
 }
 
-function createTimeoutError(): DOMException {
-    return new DOMException('The operation timed out', 'TimeoutError');
+function createTimeoutError(): TimeoutError {
+    return new TimeoutError();
 }
 
 export function createCancellationScope(signal?: AbortSignal, timeout?: number): CancellationScope {

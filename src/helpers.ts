@@ -133,7 +133,7 @@ function runFiniteInterval<T>(options: NormalizedHelperOptions, func: FiniteInte
                 start: options.start,
                 time: options.time,
                 signal,
-                func: async (counter) => func(counter, complete),
+                func: async ({ iteration }) => func(iteration, complete),
                 onError: fail,
             });
 

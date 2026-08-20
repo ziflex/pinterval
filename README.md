@@ -17,6 +17,7 @@ A powerful and flexible interval management library that goes beyond JavaScript'
 - [API Documentation](#api-documentation)
 - [Core Concepts](#core-concepts)
   - [Interval Class](#interval-class)
+  - [Lifecycle, Completion, and Context](#lifecycle-completion-and-context)
   - [Start Modes](#start-modes)
   - [Auto-Stop Mechanism](#auto-stop-mechanism)
   - [Error Handling](#error-handling)
@@ -53,6 +54,7 @@ A powerful and flexible interval management library that goes beyond JavaScript'
 - ✅ **Rich Helper Functions** - Pre-built utilities for common patterns (polling, retries, pipelines)
 - ✅ **Backoff Strategies** - Multiple built-in duration functions for sophisticated retry logic
 - ✅ **Cancellation and Timeouts** - Standard `AbortSignal` support and total-lifetime limits
+- ✅ **Observable Lifecycle** - Explicit state, completion promises, and pause/resume controls
 - ✅ **TypeScript First** - Full TypeScript support with comprehensive type definitions
 - ✅ **Zero Dependencies** - Minimal footprint with absolutely no dependencies
 - ✅ **Production Ready** - Battle-tested and actively maintained
@@ -88,6 +90,9 @@ interval.start();
 
 // Stop when needed
 setTimeout(() => interval.stop(), 5000);
+
+// Observe normal completion, stop, cancellation, or failure
+await interval.done;
 ```
 
 ## Why pinterval?
@@ -139,7 +144,7 @@ interval.stop();
 
 ```typescript
 interface Params {
-    func: (() => boolean | void) | ((counter: number) => boolean | void);
+    func: (context: IntervalContext) => boolean | void | Promise<boolean | void>;
     time: number | ((counter: number) => number);
     start?: 'immediate' | 'delayed';
     onError?: (err: Error) => boolean | void;
@@ -147,7 +152,7 @@ interface Params {
 }
 ```
 
-- **func** - Function to execute on each interval. Can be sync or async (returns Promise)
+- **func** - Synchronous or asynchronous function that receives the current execution context
 - **time** - Interval duration in milliseconds or a function that calculates it dynamically
 - **start** - When to execute the first tick: `'delayed'` (default) waits for the first delay, `'immediate'` executes immediately
 - **onError** - Optional error handler. Return `true` to continue, `false` to stop
@@ -155,9 +160,53 @@ interface Params {
 
 #### Methods
 
-- **start()** - Starts the interval. Throws if already running.
+- **start()** - Starts the interval. Throws if the current run is running or paused.
 - **stop()** - Stops the interval. Safe to call repeatedly.
-- **isRunning** - Property that returns `true` if the interval is currently running.
+- **pause()** - Pauses the current run without completing it.
+- **resume()** - Resumes a paused run without resetting its progress.
+- **done** - Promise for the current run. It resolves on normal completion or `stop()` and rejects on cancellation or an unhandled error.
+- **state** - Current lifecycle state: `'idle'`, `'running'`, `'paused'`, or `'stopped'`.
+- **isRunning** - Compatibility property derived from `state === 'running'`.
+
+### Lifecycle, Completion, and Context
+
+`start()` remains synchronous and fluent. Read `done` after starting to await that specific run:
+
+```typescript
+const interval = new Interval({
+    time: 1000,
+    func: async ({ iteration, elapsed, signal }) => {
+        console.log(`Execution ${iteration} after ${elapsed}ms`);
+        await fetch('/api/refresh', { signal });
+    }
+});
+
+interval.start();
+const firstRun = interval.done;
+
+// Pausing cancels the pending delay but preserves this run and its iteration count.
+interval.pause();
+interval.resume(); // The pending/next execution waits one normal interval duration.
+
+setTimeout(() => interval.stop(), 5000);
+await firstRun;
+```
+
+`iteration` is 1-based. `elapsed` is wall-clock time since `start()`, including paused time. `signal` is owned by the run: it reflects the supplied external signal and also aborts when `stop()` is called, allowing signal-aware callback work to stop cooperatively.
+
+Before the first start, `done` is already resolved. Each subsequent `start()` creates a new promise and signal; an old `done` promise can never be settled by a later run. Calling `resume()` after a final stop is a no-op—use `start()` to begin a new run.
+
+In v5, `Interval` callbacks receive this context object instead of a numeric counter:
+
+```typescript
+// v4
+func: (counter) => counter < 10
+
+// v5
+func: ({ iteration }) => iteration < 10
+```
+
+Duration functions and finite-helper predicates retain their existing 1-based numeric counters.
 
 ### Start Modes
 
@@ -251,9 +300,10 @@ const asyncInterval = new Interval({
 **Error Handler Return Values:**
 
 - `true` - Continue interval execution (schedules next tick)
-- `false` - Stop interval execution
-- `undefined` or no return - Stops interval execution
-- If error handler itself throws, the interval stops
+- `false` - Stop interval execution and resolve `done`
+- `undefined` or no return - Stop interval execution and resolve `done`
+- If no handler is provided, `done` rejects with the callback error
+- If the error handler itself throws, `done` rejects with the handler error
 
 ### Async Support
 
@@ -288,7 +338,7 @@ interval.start();
 
 ### Cancellation and Timeouts
 
-`Interval`, `sleep`, and every finite helper accept an optional standard `AbortSignal`. Aborting clears a pending scheduling timer immediately and prevents future executions.
+`Interval`, `sleep`, and every finite helper accept an optional standard `AbortSignal`. Aborting clears a pending scheduling timer immediately and prevents future executions. For `Interval`, it also rejects the current `done` promise with the external signal's exact reason.
 
 ```typescript
 import { Interval, until } from 'pinterval';
@@ -297,13 +347,19 @@ const intervalController = new AbortController();
 const interval = new Interval({
     time: 1000,
     signal: intervalController.signal,
-    func: async () => {
-        await refreshData();
+    func: async ({ signal }) => {
+        await refreshData({ signal });
     }
 });
 
 interval.start();
 intervalController.abort();
+
+try {
+    await interval.done;
+} catch (err) {
+    console.log(err === intervalController.signal.reason); // true
+}
 
 const controller = new AbortController();
 await until(checkReady, {
@@ -328,7 +384,9 @@ await retry(loadData, {
 });
 ```
 
-External cancellation rejects with `signal.reason` (normally an `AbortError`), while an overall timeout rejects with a `TimeoutError`. Neither source can forcibly interrupt arbitrary callback code already executing; it stops the helper promptly and prevents another iteration. Pass the external signal to APIs such as `fetch` inside the callback when that work should also be interruptible.
+`AbortError` and `TimeoutError` are exported classes that extend the standard `Error` type in both Node and browser environments. pinterval creates an `AbortError` when it needs its own cancellation reason (for example, when `stop()` aborts an interval's effective signal) and a `TimeoutError` when an overall helper timeout expires.
+
+External cancellation still rejects with the exact `signal.reason`. That value belongs to the caller or host runtime and is not normalized, so it may be any value or host-provided error type. Neither cancellation nor timeout can forcibly interrupt arbitrary callback code already executing; it stops the operation promptly and prevents another iteration. Use the effective `signal` from `IntervalContext` with APIs such as `fetch` when callback work should also be interruptible.
 
 ### Dynamic Duration
 
@@ -1253,8 +1311,8 @@ Run a background cleanup task with dynamic timing:
 import { Interval, duration } from 'pinterval';
 
 const cleanupTask = new Interval({
-    func: async (counter) => {
-        console.log(`Running cleanup task (iteration ${counter})...`);
+    func: async ({ iteration }) => {
+        console.log(`Running cleanup task (iteration ${iteration})...`);
         
         try {
             // Clean up old records
@@ -1297,9 +1355,9 @@ pinterval is written in TypeScript and provides full type definitions out of the
 import { Interval, Params, IntervalFunction } from 'pinterval';
 
 // Type-safe interval function
-const myFunction: IntervalFunction = (counter) => {
-    console.log(`Tick ${counter}`);
-    return counter < 10;
+const myFunction: IntervalFunction = ({ iteration, elapsed, signal }) => {
+    console.log(`Tick ${iteration} after ${elapsed}ms`, signal.aborted);
+    return iteration < 10;
 };
 
 // Type-safe parameters
@@ -1503,9 +1561,7 @@ class MyComponent {
     
     // Clean up when component unmounts
     cleanup() {
-        if (this.interval?.isRunning) {
-            this.interval.stop();
-        }
+        this.interval?.stop();
     }
 }
 ```
