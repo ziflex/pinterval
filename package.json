@@ -5,7 +5,6 @@
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "scripts": {
-        "gh-pages": "git subtree push --prefix docs origin gh-pages",
         "clean": "rimraf lib",
         "lint": "eslint src test --ext .ts",
         "build": "cross-env NODE_ENV=production npm run clean && npm run lint && tsc -b tsconfig.json",
