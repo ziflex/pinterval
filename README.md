@@ -381,6 +381,10 @@ For finite helpers, `time` and `timeout` have distinct meanings:
 - **timeout** - Optional maximum lifetime for the entire operation, including its initial delay and callback execution.
 - **signal** - External cancellation controlled by the caller. The first of external cancellation and timeout wins.
 
+Every concrete duration passed to a timer follows the same validation contract: interval delays, `sleep` durations, and
+finite-helper `timeout` values must be finite and between `0` and `2_147_483_647` milliseconds inclusive. Zero-duration
+timers remain valid. Invalid values fail explicitly instead of relying on host-specific `setTimeout` coercion.
+
 ```typescript
 import { retry } from 'pinterval';
 
@@ -818,6 +822,9 @@ try {
 function sleep(time: number, options?: { signal?: AbortSignal }): Promise<void>
 ```
 
+`time` follows the common timer validation contract: it must be finite and between `0` and `2_147_483_647` milliseconds
+inclusive, and zero is valid.
+
 ## Duration Functions
 
 Durations use one common model: either a constant number of milliseconds or a function of the scheduling counter.
@@ -837,7 +844,9 @@ Transformations accept either form of `Duration`, so constants, built-ins, and c
 
 The counter is one-based and retains the existing scheduling semantics. A delayed interval resolves counter `1` before its first execution. An immediate interval executes first without a delay, so its first resolved duration receives counter `2`.
 
-Resolved delays may be fractional, but must be finite and between `0` and `2_147_483_647` milliseconds. Invalid strategy results fail explicitly with an error instead of relying on host-specific `setTimeout` coercion.
+Resolved delays may be fractional, but must be finite and between `0` and `2_147_483_647` milliseconds inclusive. The
+same range applies to `sleep` durations and finite-helper timeouts. Invalid values fail explicitly instead of relying on
+host-specific `setTimeout` coercion.
 
 ### constant
 
@@ -1033,7 +1042,8 @@ const lowJitter = duration.jittered(1000, 10000, 0.05);
 
 ### decorrelatedJitter
 
-AWS-recommended jitter strategy where each delay is based on the previous delay, not the iteration count. This is a stateful function.
+AWS-style decorrelated jitter where each delay is based on the previous generated delay, not the iteration count. The
+initial duration is the lower bound, and the strategy is stateful.
 
 ```typescript
 import { retry, duration } from 'pinterval';
@@ -1045,7 +1055,7 @@ const result = await retry(
     duration.decorrelatedJitter(100, 10000)
 );
 
-// Each delay is random(0, previous_delay * 3), capped at max
+// Each delay is random(initial, previous_delay * 3), capped at max
 // Provides excellent distribution for distributed systems
 ```
 
@@ -1056,8 +1066,8 @@ function decorrelatedJitter(initial: number, max: number): DurationFunction
 
 **Parameters:**
 
-- **initial** - Starting duration in milliseconds
-- **max** - Maximum duration cap (required)
+- **initial** - Starting duration and lower bound in milliseconds
+- **max** - Maximum duration cap (required and greater than or equal to `initial`)
 
 **Use Cases:**
 
@@ -1068,7 +1078,8 @@ function decorrelatedJitter(initial: number, max: number): DurationFunction
 
 **Important Note:**
 
-This function is stateful - each instance maintains internal state. Create a new instance for each interval:
+Each generated and capped delay becomes the previous value used to calculate the next range. Each instance maintains its
+own internal state, so create a new instance for each interval:
 
 ```typescript
 // ✅ Correct: new instance per interval

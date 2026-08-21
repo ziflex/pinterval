@@ -16,6 +16,7 @@
 <div class="tsd-signature tsd-anchor-link" id="sleep"><span class="tsd-kind-call-signature">sleep</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">time</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">options</span><span class="tsd-signature-symbol">?:</span> <a href="../interfaces/SleepOptions.html" class="tsd-signature-type tsd-kind-interface">SleepOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span><a href="#sleep" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Pauses execution for a specified amount of time.</p>
+<p><code>time</code> must be finite and between 0 and 2,147,483,647 milliseconds inclusive.</p>
 <p>If a signal is provided, aborting it clears the pending timer and rejects with the signal's reason.</p>
 </div>
 <div class="tsd-parameters">
@@ -25,7 +26,7 @@
 <li><span><span class="tsd-kind-parameter">options</span>: <a href="../interfaces/SleepOptions.html" class="tsd-signature-type tsd-kind-interface">SleepOptions</a><span class="tsd-signature-symbol"> = {}</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/61c4779ffeaaa28f6cad474c76ca50805b264e65/src/helpers.ts#L481">src/helpers.ts:481</a></li></ul></aside></div></li></ul></section></div>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/f07c32a584657d86ac5d07de374fc5144eda556d/src/helpers.ts#L495">src/helpers.ts:495</a></li></ul></aside></div></li></ul></section></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

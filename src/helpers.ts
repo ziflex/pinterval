@@ -1,10 +1,14 @@
 import { createCancellationScope, getAbortReason } from './cancellation';
 import type { Duration } from './duration';
+import { validateTimerDuration } from './duration-internal';
 import { Interval, IntervalContext, StartMode } from './interval';
 
 /** Shared scheduling and lifecycle options for finite helpers. */
 export interface ExecutionOptions {
-    /** Delay between executions, in milliseconds or as a counter-based duration function. */
+    /**
+     * Delay between executions, in milliseconds or as a counter-based duration function. Concrete and resolved values
+     * must be finite and between 0 and 2,147,483,647 milliseconds inclusive.
+     */
     time: Duration;
 
     /** Determines whether the first execution is immediate or delayed. Defaults to `immediate`. */
@@ -13,7 +17,7 @@ export interface ExecutionOptions {
     /** An optional external cancellation signal. */
     signal?: AbortSignal;
 
-    /** Maximum total operation lifetime in milliseconds. */
+    /** Maximum total operation lifetime in milliseconds, from 0 through 2,147,483,647 inclusive. */
     timeout?: number;
 }
 
@@ -85,21 +89,29 @@ type FiniteIntervalFunction<T> = (
     complete: Complete<T>,
 ) => boolean | void | Promise<boolean | void>;
 
+function validateExecutionTimeout<T extends NormalizedExecutionOptions>(options: T): T {
+    if (typeof options.timeout !== 'undefined') {
+        validateTimerDuration(options.timeout, 'timeout');
+    }
+
+    return options;
+}
+
 function normalizeExecutionOptions(
     timeOrOptions: Duration | ExecutionOptions,
     start: StartMode,
 ): NormalizedExecutionOptions {
     if (typeof timeOrOptions === 'number' || typeof timeOrOptions === 'function') {
-        return {
+        return validateExecutionTimeout({
             time: timeOrOptions,
             start,
-        };
+        });
     }
 
-    return {
+    return validateExecutionTimeout({
         ...timeOrOptions,
         start: timeOrOptions.start ?? 'immediate',
-    };
+    });
 }
 
 function normalizeUntilOptions<T>(
@@ -108,17 +120,17 @@ function normalizeUntilOptions<T>(
     start: StartMode,
 ): NormalizedUntilOptions<T> {
     if (typeof predicateOrOptions === 'function') {
-        return {
+        return validateExecutionTimeout({
             predicate: predicateOrOptions,
             time: time as Duration,
             start,
-        };
+        });
     }
 
-    return {
+    return validateExecutionTimeout({
         ...predicateOrOptions,
         start: predicateOrOptions.start ?? 'immediate',
-    };
+    });
 }
 
 function normalizeRetryOptions(
@@ -127,17 +139,17 @@ function normalizeRetryOptions(
     start: StartMode,
 ): NormalizedRetryOptions {
     if (typeof attemptsOrOptions === 'number') {
-        return {
+        return validateExecutionTimeout({
             attempts: attemptsOrOptions,
             time: time as Duration,
             start,
-        };
+        });
     }
 
-    return {
+    return validateExecutionTimeout({
         ...attemptsOrOptions,
         start: attemptsOrOptions.start ?? 'immediate',
-    };
+    });
 }
 
 function normalizeTimesOptions(
@@ -146,17 +158,17 @@ function normalizeTimesOptions(
     start: StartMode,
 ): NormalizedTimesOptions {
     if (typeof amountOrOptions === 'number') {
-        return {
+        return validateExecutionTimeout({
             amount: amountOrOptions,
             time: time as Duration,
             start,
-        };
+        });
     }
 
-    return {
+    return validateExecutionTimeout({
         ...amountOrOptions,
         start: amountOrOptions.start ?? 'immediate',
-    };
+    });
 }
 
 function resolveImmediately<T>(value: T, signal?: AbortSignal): Promise<T> {
@@ -476,9 +488,12 @@ export function pipeline(
 /**
  * Pauses execution for a specified amount of time.
  *
+ * `time` must be finite and between 0 and 2,147,483,647 milliseconds inclusive.
+ *
  * If a signal is provided, aborting it clears the pending timer and rejects with the signal's reason.
  */
 export function sleep(time: number, options: SleepOptions = {}): Promise<void> {
+    const delay = validateTimerDuration(time, 'time');
     const { signal } = options;
 
     if (signal?.aborted) {
@@ -515,6 +530,6 @@ export function sleep(time: number, options: SleepOptions = {}): Promise<void> {
         }
 
         signal?.addEventListener('abort', handleAbort, { once: true });
-        timer = setTimeout(() => finish(resolve), time);
+        timer = setTimeout(() => finish(resolve), delay);
     });
 }

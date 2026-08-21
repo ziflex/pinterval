@@ -13,6 +13,7 @@ import {
     times,
     until,
 } from '../../src';
+import { MAX_TIMER_DURATION } from '../../src/duration-internal';
 
 function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
     return promise.then(
@@ -55,6 +56,17 @@ describe('Cancellation and timeouts', () => {
     });
 
     describe('sleep', () => {
+        it('accepts a zero-duration timer', async () => {
+            const promise = sleep(0);
+
+            expect(clock.countTimers()).to.equal(1);
+
+            await clock.tickAsync(0);
+            await promise;
+
+            expect(clock.countTimers()).to.equal(0);
+        });
+
         it('resolves normally and releases its timer', async () => {
             const promise = sleep(100);
 
@@ -135,6 +147,20 @@ describe('Cancellation and timeouts', () => {
             const err = await rejectionOf(sleep(100, { signal: controller.signal }));
 
             expect(err).to.equal(null);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('rejects invalid timer durations before scheduling', () => {
+            for (const time of [
+                -1,
+                Number.NaN,
+                Number.POSITIVE_INFINITY,
+                Number.NEGATIVE_INFINITY,
+                MAX_TIMER_DURATION + 1,
+            ]) {
+                expect(() => sleep(time)).to.throw(RangeError);
+            }
+
             expect(clock.countTimers()).to.equal(0);
         });
     });
@@ -260,6 +286,49 @@ describe('Cancellation and timeouts', () => {
     });
 
     describe('finite helpers', () => {
+        const timeoutValidationCases = [
+            {
+                name: 'poll',
+                run: (func: sinon.SinonSpy, timeout: number) =>
+                    poll(
+                        () => {
+                            func();
+                            return false;
+                        },
+                        { time: 100, timeout },
+                    ),
+            },
+            {
+                name: 'until',
+                run: (func: sinon.SinonSpy, timeout: number) =>
+                    until(
+                        () => {
+                            func();
+                            return undefined;
+                        },
+                        { predicate: () => false, time: 100, timeout },
+                    ),
+            },
+            {
+                name: 'retry',
+                run: (func: sinon.SinonSpy, timeout: number) =>
+                    retry(
+                        () => {
+                            func();
+                            throw new Error('retry');
+                        },
+                        { attempts: 100, time: 100, timeout },
+                    ),
+            },
+            {
+                name: 'times',
+                run: (func: sinon.SinonSpy, timeout: number) => times(() => func(), { amount: 0, time: 100, timeout }),
+            },
+            {
+                name: 'pipeline',
+                run: (func: sinon.SinonSpy, timeout: number) => pipeline([], { time: 100, timeout }).then(() => func()),
+            },
+        ];
         const abortCases = [
             {
                 name: 'poll',
@@ -305,6 +374,42 @@ describe('Cancellation and timeouts', () => {
                     pipeline([() => func(), () => func()], { time: 100, signal, timeout }),
             },
         ];
+
+        for (const testCase of timeoutValidationCases) {
+            it(`${testCase.name} rejects invalid timeout durations before scheduling or executing`, () => {
+                for (const timeout of [
+                    -1,
+                    Number.NaN,
+                    Number.POSITIVE_INFINITY,
+                    Number.NEGATIVE_INFINITY,
+                    MAX_TIMER_DURATION + 1,
+                ]) {
+                    const func = sinon.spy();
+
+                    expect(() => testCase.run(func, timeout)).to.throw(RangeError);
+                    expect(func.callCount).to.equal(0);
+                    expect(clock.countTimers()).to.equal(0);
+                }
+            });
+        }
+
+        it('accepts a zero-duration helper timeout', async () => {
+            const func = sinon.spy();
+            const promise = poll(
+                () => {
+                    func();
+                    return false;
+                },
+                { time: 100, timeout: 0 },
+            );
+            const rejection = rejectionOf(promise);
+
+            await clock.tickAsync(0);
+
+            expect(await rejection).to.be.instanceOf(TimeoutError);
+            expect(func.callCount).to.equal(0);
+            expect(clock.countTimers()).to.equal(0);
+        });
 
         for (const testCase of abortCases) {
             it(`${testCase.name} rejects immediately for an already-aborted signal`, async () => {

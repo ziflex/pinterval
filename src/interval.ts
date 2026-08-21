@@ -68,6 +68,7 @@ export interface Params {
     /**
      * Represents a duration of time.
      * It can be either a number (milliseconds) or a function that returns a number based on the counter.
+     * Concrete and resolved values must be finite and between 0 and 2,147,483,647 milliseconds inclusive.
      */
     time: Duration;
 

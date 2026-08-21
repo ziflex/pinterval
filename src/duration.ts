@@ -9,7 +9,10 @@ import {
 /** Calculates a duration from the current one-based scheduling counter. */
 export type DurationFunction = (counter: number) => number;
 
-/** A constant duration in milliseconds or a counter-based duration function. */
+/**
+ * A constant duration in milliseconds or a counter-based duration function. Concrete timer values must be finite and
+ * between 0 and 2,147,483,647 milliseconds inclusive.
+ */
 export type Duration = DurationFunction | number;
 
 type Random = () => number;
@@ -157,17 +160,26 @@ function createDecorrelatedJitter(initial: number, maximum: number, random: Rand
     validateTimerDuration(initial, 'initial');
     validateTimerDuration(maximum, 'maximum');
 
+    if (maximum < initial) {
+        throw new RangeError('"maximum" must be greater than or equal to "initial"');
+    }
+
     let previous = initial;
 
     return createStrategy(() => {
-        const next = validateComputedDuration(Math.min(maximum, random() * previous * 3));
+        const upper = Math.max(initial, previous * 3);
+        const sampled = initial + random() * (upper - initial);
+        const next = validateComputedDuration(Math.min(maximum, sampled));
         previous = next;
 
         return next;
     });
 }
 
-/** Produces stateful decorrelated jitter based on the previously calculated duration. */
+/**
+ * Produces stateful decorrelated jitter sampled between `initial` and three times the previously generated duration,
+ * then capped at `maximum`.
+ */
 const decorrelatedJitter = (initial: number, maximum: number): DurationFunction =>
     createDecorrelatedJitter(initial, maximum, () => Math.random());
 

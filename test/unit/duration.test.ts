@@ -196,22 +196,58 @@ describe('Duration functions', () => {
     });
 
     describe('decorrelatedJitter', () => {
-        it('updates its isolated state from deterministic random values', () => {
+        it('returns the initial duration for the minimum random value without collapsing below it', () => {
+            sinon.stub(Math, 'random').returns(0);
+            const strategy = duration.decorrelatedJitter(100, 10_000);
+
+            expect([strategy(1), strategy(2), strategy(3)]).to.deep.equal([100, 100, 100]);
+        });
+
+        it('returns three times the previous duration for the maximum random value', () => {
+            sinon.stub(Math, 'random').returns(1);
+            const strategy = duration.decorrelatedJitter(100, 10_000);
+
+            expect(strategy(1)).to.equal(300);
+            expect(strategy(2)).to.equal(900);
+        });
+
+        it('updates its isolated state from deterministic intermediate random values', () => {
             const random = sinon.stub(Math, 'random');
             random.onCall(0).returns(0.5);
             random.onCall(1).returns(0.25);
             const strategy = duration.decorrelatedJitter(100, 10_000);
 
-            expect(strategy(1)).to.equal(150);
-            expect(strategy(2)).to.equal(112.5);
+            expect(strategy(1)).to.equal(200);
+            expect(strategy(2)).to.equal(225);
+            expect(random.callCount).to.equal(2);
         });
 
-        it('retains its maximum cap', () => {
+        it('clamps each generated duration to the maximum and progresses from the clamped value', () => {
             sinon.stub(Math, 'random').returns(1);
-            const strategy = duration.decorrelatedJitter(100, 200);
+            const strategy = duration.decorrelatedJitter(100, 250);
 
-            expect(strategy(1)).to.equal(200);
-            expect(strategy(2)).to.equal(200);
+            expect(strategy(1)).to.equal(250);
+            expect(strategy(2)).to.equal(250);
+        });
+
+        it('never generates a value below the initial duration', () => {
+            const random = sinon.stub(Math, 'random');
+            random.onCall(0).returns(1);
+            random.onCall(1).returns(0);
+            random.onCall(2).returns(0.01);
+            random.onCall(3).returns(0.5);
+            const strategy = duration.decorrelatedJitter(100, 10_000);
+
+            for (let counter = 1; counter <= 4; counter++) {
+                expect(strategy(counter)).to.be.at.least(100);
+            }
+        });
+
+        it('rejects a maximum below the initial duration', () => {
+            expect(() => duration.decorrelatedJitter(100, 99)).to.throw(
+                RangeError,
+                '"maximum" must be greater than or equal to "initial"',
+            );
         });
     });
 

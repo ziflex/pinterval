@@ -25,7 +25,7 @@
 <ul class="tsd-hierarchy">
 <li class="tsd-hierarchy-item"><span class="tsd-hierarchy-target">UntilOptions</span></li></ul></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/61c4779ffeaaa28f6cad474c76ca50805b264e65/src/helpers.ts#L26">src/helpers.ts:26</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/f07c32a584657d86ac5d07de374fc5144eda556d/src/helpers.ts#L30">src/helpers.ts:30</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -48,7 +48,7 @@
 <div class="tsd-comment tsd-typography"><p>Determines whether a returned value completes the helper.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/61c4779ffeaaa28f6cad474c76ca50805b264e65/src/helpers.ts#L28">src/helpers.ts:28</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/f07c32a584657d86ac5d07de374fc5144eda556d/src/helpers.ts#L32">src/helpers.ts:32</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="signal"><code class="tsd-tag">Optional</code><span>signal</span><a href="#signal" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">signal</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span></div>
@@ -56,7 +56,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="ExecutionOptions.html">ExecutionOptions</a>.<a href="ExecutionOptions.html#signal">signal</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/61c4779ffeaaa28f6cad474c76ca50805b264e65/src/helpers.ts#L14">src/helpers.ts:14</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/f07c32a584657d86ac5d07de374fc5144eda556d/src/helpers.ts#L18">src/helpers.ts:18</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="start"><code class="tsd-tag">Optional</code><span>start</span><a href="#start" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">start</span><span class="tsd-signature-symbol">?:</span> <a href="../types/StartMode.html" class="tsd-signature-type tsd-kind-type-alias">StartMode</a></div>
@@ -64,23 +64,24 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="ExecutionOptions.html">ExecutionOptions</a>.<a href="ExecutionOptions.html#start">start</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/61c4779ffeaaa28f6cad474c76ca50805b264e65/src/helpers.ts#L11">src/helpers.ts:11</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/f07c32a584657d86ac5d07de374fc5144eda556d/src/helpers.ts#L15">src/helpers.ts:15</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="time"><span>time</span><a href="#time" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">time</span><span class="tsd-signature-symbol">:</span> <a href="../types/Duration.html" class="tsd-signature-type tsd-kind-type-alias">Duration</a></div>
-<div class="tsd-comment tsd-typography"><p>Delay between executions, in milliseconds or as a counter-based duration function.</p>
+<div class="tsd-comment tsd-typography"><p>Delay between executions, in milliseconds or as a counter-based duration function. Concrete and resolved values
+must be finite and between 0 and 2,147,483,647 milliseconds inclusive.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="ExecutionOptions.html">ExecutionOptions</a>.<a href="ExecutionOptions.html#time">time</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/61c4779ffeaaa28f6cad474c76ca50805b264e65/src/helpers.ts#L8">src/helpers.ts:8</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/f07c32a584657d86ac5d07de374fc5144eda556d/src/helpers.ts#L12">src/helpers.ts:12</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="timeout"><code class="tsd-tag">Optional</code><span>timeout</span><a href="#timeout" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">timeout</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
-<div class="tsd-comment tsd-typography"><p>Maximum total operation lifetime in milliseconds.</p>
+<div class="tsd-comment tsd-typography"><p>Maximum total operation lifetime in milliseconds, from 0 through 2,147,483,647 inclusive.</p>
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="ExecutionOptions.html">ExecutionOptions</a>.<a href="ExecutionOptions.html#timeout">timeout</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/61c4779ffeaaa28f6cad474c76ca50805b264e65/src/helpers.ts#L17">src/helpers.ts:17</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/f07c32a584657d86ac5d07de374fc5144eda556d/src/helpers.ts#L21">src/helpers.ts:21</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

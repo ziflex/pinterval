@@ -26,7 +26,8 @@
 </div></li>
 <li class="tsd-parameter">
 <h5 id="decorrelatedjitter"><span class="tsd-kind-property">decorrelatedJitter</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">initial</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">maximum</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <a href="../types/DurationFunction.html" class="tsd-signature-type tsd-kind-type-alias">DurationFunction</a></h5>
-<div class="tsd-comment tsd-typography"><p>Produces stateful decorrelated jitter based on the previously calculated duration.</p>
+<div class="tsd-comment tsd-typography"><p>Produces stateful decorrelated jitter sampled between <code>initial</code> and three times the previously generated duration,
+then capped at <code>maximum</code>.</p>
 </div></li>
 <li class="tsd-parameter">
 <h5 id="exponential"><span class="tsd-kind-property">exponential</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">initial</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">maximum</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <a href="../types/DurationFunction.html" class="tsd-signature-type tsd-kind-type-alias">DurationFunction</a></h5>
@@ -62,7 +63,7 @@
 <div class="tsd-comment tsd-typography"><p>Returns the duration associated with the greatest threshold reached by the counter.</p>
 </div></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/61c4779ffeaaa28f6cad474c76ca50805b264e65/src/duration.ts#L175">src/duration.ts:175</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/f07c32a584657d86ac5d07de374fc5144eda556d/src/duration.ts#L187">src/duration.ts:187</a></li></ul></aside></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
