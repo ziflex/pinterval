@@ -1,7 +1,6 @@
 // eslint.config.mjs
 import js from '@eslint/js';
 import chaiFriendly from 'eslint-plugin-chai-friendly';
-import importPlugin from 'eslint-plugin-import';
 import prettierPlugin from 'eslint-plugin-prettier';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import globals from 'globals';
@@ -16,7 +15,6 @@ export default [
     chaiFriendly.configs.recommendedFlat,
     {
         plugins: {
-            import: importPlugin,
             prettier: prettierPlugin,
             'simple-import-sort': simpleImportSort,
             'chai-friendly': chaiFriendly,

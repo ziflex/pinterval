@@ -1,295 +1,586 @@
 import { expect } from 'chai';
-import sinon from 'sinon';
+import sinon, { SinonFakeTimers } from 'sinon';
 
-import { pipeline, poll, retry, times, until } from '../../src';
+import { duration, pipeline, poll, retry, RetryContext, times, until } from '../../src';
+
+function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
+    return promise.then(
+        () => Promise.reject(new Error('Expected promise to reject')),
+        (err: unknown) => err,
+    );
+}
 
 describe('Helpers', () => {
+    let clock: SinonFakeTimers;
+
+    beforeEach(() => {
+        clock = sinon.useFakeTimers();
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
     describe('poll', () => {
-        context('When returned "false"', () => {
-            it('should stop', async () => {
-                const spy = sinon.spy();
-                await poll(() => {
-                    spy();
+        it('completes when the condition becomes true and exposes context', async () => {
+            const iterations: number[] = [];
+            const promise = poll(({ iteration, elapsed, signal }) => {
+                iterations.push(iteration);
+                expect(elapsed).to.equal((iteration - 1) * 10);
+                expect(signal.aborted).to.be.false;
 
-                    return spy.callCount < 5;
-                }, 200);
+                return iteration === 3;
+            }, 10);
 
-                expect(spy.callCount).to.eq(5);
-            });
+            await clock.runAllAsync();
+            await promise;
+
+            expect(iterations).to.deep.equal([1, 2, 3]);
+            expect(clock.countTimers()).to.equal(0);
         });
 
-        context('When start mode is "immediate"', () => {
-            it('should execute the first invocation immediately without delay', async () => {
-                const startTime = Date.now();
-                const spy = sinon.spy();
+        it('supports object options and delayed start', async () => {
+            const condition = sinon.stub().returns(true);
+            const promise = poll(condition, { time: 25, start: 'delayed' });
 
-                await poll(
-                    () => {
-                        spy();
-                        const elapsed = Date.now() - startTime;
+            await clock.tickAsync(24);
+            expect(condition.callCount).to.equal(0);
 
-                        // First call should happen immediately (within 50ms)
-                        if (spy.callCount === 1) {
-                            expect(elapsed).to.be.lessThan(50);
-                        }
+            await clock.tickAsync(1);
+            await promise;
 
-                        return spy.callCount < 2;
-                    },
-                    200,
-                    'immediate',
-                );
-
-                expect(spy.callCount).to.eq(2);
-            });
+            expect(condition.callCount).to.equal(1);
+            expect(condition.firstCall.args[0].iteration).to.equal(1);
         });
 
-        context('When start mode is "delayed"', () => {
-            it('should wait for the timeout before the first execution', async () => {
-                const startTime = Date.now();
-                const spy = sinon.spy();
+        it('preserves condition errors', async () => {
+            const expected = new Error('condition failed');
+            const promise = poll(() => {
+                throw expected;
+            }, 10);
+            const rejection = rejectionOf(promise);
 
-                await poll(
-                    () => {
-                        spy();
-                        const elapsed = Date.now() - startTime;
+            await clock.tickAsync(0);
 
-                        // First call should happen after the timeout (at least 150ms for 200ms timeout)
-                        if (spy.callCount === 1) {
-                            expect(elapsed).to.be.greaterThan(150);
-                        }
-
-                        return spy.callCount < 2;
-                    },
-                    200,
-                    'delayed',
-                );
-
-                expect(spy.callCount).to.eq(2);
-            });
+            expect(await rejection).to.equal(expected);
+            expect(clock.countTimers()).to.equal(0);
         });
     });
 
     describe('until', () => {
-        context('Until data is returned', () => {
-            it('should stop', async () => {
-                const spy = sinon.spy();
-                const data = await until(() => {
-                    spy();
+        it('returns the first value accepted by a positional predicate, including undefined', async () => {
+            const source = sinon.stub();
+            source.onFirstCall().returns('pending');
+            source.onSecondCall().returns(undefined);
+            const predicate = sinon.spy((value: string | undefined, context: { iteration: number }) => {
+                expect(context.iteration).to.be.oneOf([1, 2]);
 
-                    if (spy.callCount < 5) {
-                        return undefined;
-                    }
-
-                    return 'foo';
-                }, 200);
-
-                expect(spy.callCount).to.eq(5);
-                expect(data).to.eql('foo');
+                return typeof value === 'undefined';
             });
+            const promise = until(source, predicate, 10);
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal(undefined);
+            expect(source.callCount).to.equal(2);
+            expect(predicate.callCount).to.equal(2);
+            expect(predicate.secondCall.args[1].iteration).to.equal(2);
+            expect(clock.countTimers()).to.equal(0);
         });
 
-        context('When start mode is "immediate"', () => {
-            it('should execute the first invocation immediately without delay', async () => {
-                const startTime = Date.now();
-                const spy = sinon.spy();
+        it('supports an asynchronous predicate in object options and returns falsy values', async () => {
+            const values = [1, 0];
+            const promise = until(() => values.shift(), {
+                predicate: async (value, { iteration }) => {
+                    await Promise.resolve();
+                    expect(iteration).to.equal(value === 1 ? 1 : 2);
 
-                const data = await until(
-                    () => {
-                        spy();
-                        const elapsed = Date.now() - startTime;
-
-                        // First call should happen immediately (within 50ms)
-                        if (spy.callCount === 1) {
-                            expect(elapsed).to.be.lessThan(50);
-                            return 'result';
-                        }
-
-                        return undefined;
-                    },
-                    200,
-                    'immediate',
-                );
-
-                expect(spy.callCount).to.eq(1);
-                expect(data).to.eq('result');
+                    return value === 0;
+                },
+                time: 10,
             });
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal(0);
         });
 
-        context('When start mode is "delayed"', () => {
-            it('should wait for the timeout before the first execution', async () => {
-                const startTime = Date.now();
-                const spy = sinon.spy();
+        it('preserves source and predicate errors', async () => {
+            const sourceError = new Error('source failed');
+            const sourcePromise = until(
+                () => {
+                    throw sourceError;
+                },
+                () => true,
+                10,
+            );
+            const sourceRejection = rejectionOf(sourcePromise);
 
-                const data = await until(
-                    () => {
-                        spy();
-                        const elapsed = Date.now() - startTime;
+            await clock.tickAsync(0);
+            expect(await sourceRejection).to.equal(sourceError);
 
-                        // First call should happen after the timeout (at least 150ms for 200ms timeout)
-                        if (spy.callCount === 1) {
-                            expect(elapsed).to.be.greaterThan(150);
-                            return 'result';
-                        }
+            const predicateError = new Error('predicate failed');
+            const predicatePromise = until(
+                () => 'value',
+                () => {
+                    throw predicateError;
+                },
+                10,
+            );
+            const predicateRejection = rejectionOf(predicatePromise);
 
-                        return undefined;
-                    },
-                    200,
-                    'delayed',
-                );
-
-                expect(spy.callCount).to.eq(1);
-                expect(data).to.eq('result');
-            });
+            await clock.tickAsync(0);
+            expect(await predicateRejection).to.equal(predicateError);
+            expect(clock.countTimers()).to.equal(0);
         });
     });
 
     describe('times', () => {
-        context('when value is 0', () => {
-            it('should not execute a function', async () => {
-                const spy = sinon.spy();
-                await times(() => spy(), 0, 200);
+        it('executes exactly the requested amount without a trailing delay', async () => {
+            const contexts: Array<{ iteration: number; elapsed: number; signal: AbortSignal }> = [];
+            const promise = times(
+                (context) => {
+                    contexts.push(context);
+                },
+                { amount: 3, time: 10 },
+            );
 
-                expect(spy.callCount).to.eq(0);
-            });
+            await clock.runAllAsync();
+            await promise;
+
+            expect(contexts.map(({ iteration }) => iteration)).to.deep.equal([1, 2, 3]);
+            expect(contexts.map(({ elapsed }) => elapsed)).to.deep.equal([0, 10, 20]);
+            expect(new Set(contexts.map(({ signal }) => signal)).size).to.equal(1);
+            expect(clock.now).to.equal(20);
+            expect(clock.countTimers()).to.equal(0);
         });
 
-        context('when value is 5', () => {
-            it('should execute a function 5 times', async () => {
-                const spy = sinon.spy();
-                await times(() => spy(), 5, 200);
+        it('resolves amount zero without executing or scheduling', async () => {
+            const operation = sinon.spy();
 
-                expect(spy.callCount).to.eq(5);
-            });
+            await times(operation, 0, 10);
+
+            expect(operation.callCount).to.equal(0);
+            expect(clock.countTimers()).to.equal(0);
         });
 
-        context('When start mode is "immediate"', () => {
-            it('should execute the first invocation immediately without delay', async () => {
-                const startTime = Date.now();
-                const spy = sinon.spy();
+        it('rejects invalid amounts without executing', async () => {
+            for (const amount of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+                const operation = sinon.spy();
+                const error = await rejectionOf(times(operation, amount, 10));
 
-                await times(
-                    (counter) => {
-                        spy(counter);
-                        const elapsed = Date.now() - startTime;
+                expect(error).to.be.instanceOf(RangeError);
+                expect((error as RangeError).message).to.equal('"amount" must be a non-negative integer');
+                expect(operation.callCount).to.equal(0);
+            }
 
-                        // First call should happen immediately (within 50ms)
-                        if (counter === 1) {
-                            expect(elapsed).to.be.lessThan(50);
-                        }
-                    },
-                    2,
-                    200,
-                    'immediate',
-                );
-
-                expect(spy.callCount).to.eq(2);
-                expect(spy.args[0][0]).to.eq(1);
-                expect(spy.args[1][0]).to.eq(2);
-            });
+            expect(clock.countTimers()).to.equal(0);
         });
 
-        context('When start mode is "delayed"', () => {
-            it('should wait for the timeout before the first execution', async () => {
-                const startTime = Date.now();
-                const spy = sinon.spy();
+        it('never overlaps asynchronous operations', async () => {
+            const releases: Array<() => void> = [];
+            let active = 0;
+            let maxActive = 0;
+            const promise = times(
+                async () => {
+                    active += 1;
+                    maxActive = Math.max(maxActive, active);
+                    await new Promise<void>((resolve) => releases.push(resolve));
+                    active -= 1;
+                },
+                2,
+                10,
+            );
 
-                await times(
-                    (counter) => {
-                        spy(counter);
-                        const elapsed = Date.now() - startTime;
+            await clock.tickAsync(0);
+            await clock.tickAsync(100);
+            expect(releases).to.have.length(1);
 
-                        // First call should happen after the timeout (at least 150ms for 200ms timeout)
-                        if (counter === 1) {
-                            expect(elapsed).to.be.greaterThan(150);
-                        }
-                    },
-                    2,
-                    200,
-                    'delayed',
-                );
+            releases.shift()?.();
+            await clock.tickAsync(10);
+            expect(releases).to.have.length(1);
 
-                expect(spy.callCount).to.eq(2);
-                expect(spy.args[0][0]).to.eq(1);
-                expect(spy.args[1][0]).to.eq(2);
-            });
+            releases.shift()?.();
+            await promise;
+
+            expect(maxActive).to.equal(1);
+            expect(clock.countTimers()).to.equal(0);
         });
     });
 
     describe('retry', () => {
-        context('When value is returned before limit', () => {
-            it('should stop and return the value', async () => {
-                const spy = sinon.spy();
-                const data = await retry(
-                    (counter) => {
-                        spy(counter);
+        for (const [name, value] of [
+            ['undefined', undefined],
+            ['null', null],
+            ['false', false],
+            ['zero', 0],
+            ['empty string', ''],
+        ] as const) {
+            it(`treats ${name} as a successful first-attempt result`, async () => {
+                const operation = sinon.stub().returns(value);
+                const promise = retry(operation, 3, 10);
 
-                        if (spy.callCount < 5) {
-                            return undefined;
-                        }
+                await clock.tickAsync(0);
 
-                        return 'foo';
-                    },
-                    5,
-                    200,
-                );
-
-                expect(spy.callCount).to.eq(5);
-                expect(spy.args[0][0]).to.eq(1);
-                expect(spy.args[1][0]).to.eq(2);
-                expect(spy.args[2][0]).to.eq(3);
-                expect(spy.args[3][0]).to.eq(4);
-                expect(spy.args[4][0]).to.eq(5);
-                expect(data).to.eql('foo');
+                expect(await promise).to.equal(value);
+                expect(operation.callCount).to.equal(1);
+                expect(operation.firstCall.args[0].attempt).to.equal(1);
+                expect(clock.countTimers()).to.equal(0);
             });
+        }
+
+        it('retries normally without onRetry', async () => {
+            const operation = sinon.stub();
+            operation.onFirstCall().throws(new Error('retry'));
+            operation.onSecondCall().returns('done');
+            const promise = retry(operation, { attempts: 2, time: 10 });
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal('done');
+            expect(operation.callCount).to.equal(2);
         });
 
-        context('When attempt limit is exceeded', () => {
-            it('should reject with "Attempt limit exceeded"', async () => {
-                const spy = sinon.spy();
+        it('treats an undefined onRetry result as retry approval and exposes one-based context', async () => {
+            const first = new Error('first');
+            const second = new Error('second');
+            const contexts: RetryContext[] = [];
+            const operation = sinon.stub().callsFake((context: RetryContext) => {
+                contexts.push(context);
 
-                try {
-                    await retry(
-                        (counter) => {
-                            spy(counter);
-                            return undefined;
-                        },
-                        5,
-                        10,
-                    );
-                    throw new Error('Expected attempt to reject');
-                } catch (err: any) {
-                    expect(spy.callCount).to.eq(5);
-                    expect(spy.args[4][0]).to.eq(5);
-                    expect(err).to.be.instanceOf(Error);
-                    expect(err.message).to.eq('Attempt limit exceeded');
-                }
+                if (context.attempt === 1) throw first;
+                if (context.attempt === 2) throw second;
+
+                return 'done';
             });
+            const onRetry = sinon.spy(() => undefined);
+            const promise = retry(operation, { attempts: 3, time: 10, onRetry });
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal('done');
+            expect(contexts.map(({ attempt }) => attempt)).to.deep.equal([1, 2, 3]);
+            expect(contexts.map(({ elapsed }) => elapsed)).to.deep.equal([0, 10, 20]);
+            expect(new Set(contexts.map(({ signal }) => signal)).size).to.equal(1);
+            expect(onRetry.callCount).to.equal(2);
+            expect(onRetry.firstCall.args).to.deep.equal([first, contexts[0]]);
+            expect(onRetry.secondCall.args).to.deep.equal([second, contexts[1]]);
+        });
+
+        it('treats true as retry approval and skips onRetry after the final failure', async () => {
+            const errors = [new Error('one'), new Error('two'), new Error('three')];
+            const operation = sinon.stub().callsFake(({ attempt }: RetryContext) => {
+                throw errors[attempt - 1];
+            });
+            const onRetry = sinon.stub().returns(true);
+            const promise = retry(operation, { attempts: 3, time: 10, onRetry });
+            const rejection = rejectionOf(promise);
+
+            await clock.runAllAsync();
+
+            expect(await rejection).to.equal(errors[2]);
+            expect(operation.callCount).to.equal(3);
+            expect(onRetry.callCount).to.equal(2);
+            expect(clock.now).to.equal(20);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('awaits an async onRetry result of true before retrying', async () => {
+            const operationError = new Error('retry');
+            const operation = sinon.stub();
+            operation.onFirstCall().throws(operationError);
+            operation.onSecondCall().returns('ok');
+            const onRetry = sinon.spy(async (error: unknown, { attempt }: RetryContext) => {
+                await Promise.resolve();
+
+                return error === operationError && attempt === 1;
+            });
+            const promise = retry(operation, { attempts: 2, time: 10, onRetry });
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal('ok');
+            expect(onRetry.callCount).to.equal(1);
+        });
+
+        it('stops on false, preserves the operation error, and does not schedule a retry timer', async () => {
+            const operationError = new Error('do not retry');
+            const operation = sinon.stub().throws(operationError);
+            const duration = sinon.stub().returns(10);
+            const promise = retry(operation, { attempts: 3, time: duration, onRetry: () => false });
+            const rejection = rejectionOf(promise);
+
+            await clock.tickAsync(0);
+
+            expect(await rejection).to.equal(operationError);
+            expect(operation.callCount).to.equal(1);
+            expect(duration.callCount).to.equal(0);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('awaits an async onRetry result of false before stopping', async () => {
+            const operationError = new Error('do not retry');
+            const operation = sinon.stub().throws(operationError);
+            const onRetry = sinon.spy(async () => {
+                await Promise.resolve();
+
+                return false;
+            });
+            const promise = retry(operation, { attempts: 3, time: 10, onRetry });
+            const rejection = rejectionOf(promise);
+
+            await clock.tickAsync(0);
+
+            expect(await rejection).to.equal(operationError);
+            expect(operation.callCount).to.equal(1);
+            expect(onRetry.callCount).to.equal(1);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('propagates a synchronous onRetry error unchanged', async () => {
+            const operationError = new Error('operation');
+            const hookError = new Error('hook');
+            const promise = retry(
+                () => {
+                    throw operationError;
+                },
+                {
+                    attempts: 2,
+                    time: 10,
+                    onRetry: () => {
+                        throw hookError;
+                    },
+                },
+            );
+            const rejection = rejectionOf(promise);
+
+            await clock.tickAsync(0);
+
+            expect(await rejection).to.equal(hookError);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('propagates a rejected onRetry promise unchanged', async () => {
+            const operationError = new Error('operation');
+            const hookError = new Error('hook');
+            const promise = retry(
+                () => {
+                    throw operationError;
+                },
+                {
+                    attempts: 2,
+                    time: 10,
+                    onRetry: async () => {
+                        throw hookError;
+                    },
+                },
+            );
+            const rejection = rejectionOf(promise);
+
+            await clock.tickAsync(0);
+
+            expect(await rejection).to.equal(hookError);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('does not call onRetry after a successful attempt', async () => {
+            const onRetry = sinon.spy();
+            const promise = retry(() => 'done', { attempts: 3, time: 10, onRetry });
+
+            await clock.tickAsync(0);
+
+            expect(await promise).to.equal('done');
+            expect(onRetry.callCount).to.equal(0);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('uses existing duration indices without scheduling after settlement', async () => {
+            const immediateDuration = sinon.stub().returns(10);
+            const immediatePromise = retry(
+                ({ attempt }) => {
+                    if (attempt < 3) throw new Error(`attempt ${attempt}`);
+
+                    return 'done';
+                },
+                3,
+                immediateDuration,
+            );
+
+            await clock.runAllAsync();
+            expect(await immediatePromise).to.equal('done');
+            expect(immediateDuration.args.map(([index]) => index)).to.deep.equal([2, 3]);
+
+            const delayedDuration = sinon.stub().returns(10);
+            const delayedPromise = retry(
+                ({ attempt }) => {
+                    if (attempt < 3) throw new Error(`attempt ${attempt}`);
+
+                    return 'done';
+                },
+                3,
+                delayedDuration,
+                'delayed',
+            );
+
+            await clock.runAllAsync();
+            expect(await delayedPromise).to.equal('done');
+            expect(delayedDuration.args.map(([index]) => index)).to.deep.equal([1, 2, 3]);
+
+            const finalFailure = new Error('final');
+            const failureDuration = sinon.stub().returns(10);
+            const failurePromise = retry(
+                ({ attempt }) => {
+                    if (attempt === 3) throw finalFailure;
+
+                    throw new Error(`attempt ${attempt}`);
+                },
+                3,
+                failureDuration,
+            );
+            const failureRejection = rejectionOf(failurePromise);
+
+            await clock.runAllAsync();
+            expect(await failureRejection).to.equal(finalFailure);
+            expect(failureDuration.args.map(([index]) => index)).to.deep.equal([2, 3]);
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('rejects invalid attempt counts without executing', async () => {
+            for (const attempts of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+                const operation = sinon.spy();
+                const error = await rejectionOf(retry(operation, attempts, 10));
+
+                expect(error).to.be.instanceOf(RangeError);
+                expect((error as RangeError).message).to.equal('"attempts" must be a positive integer');
+                expect(operation.callCount).to.equal(0);
+            }
+
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('rejects when a dynamic duration produces an invalid timer value', async () => {
+            const operation = sinon.stub().throws(new Error('retry'));
+            const promise = retry(operation, 3, () => Number.NaN);
+            const rejection = rejectionOf(promise);
+
+            await clock.tickAsync(0);
+
+            expect(await rejection).to.be.instanceOf(RangeError);
+            expect(operation.callCount).to.equal(1);
+            expect(clock.countTimers()).to.equal(0);
+        });
+    });
+
+    describe('composable durations', () => {
+        function composedTime(indices: number[]) {
+            return duration.cap(
+                duration.floor(
+                    duration.map(duration.linear(5, 5), (value, counter) => {
+                        indices.push(counter);
+
+                        return value;
+                    }),
+                    10,
+                ),
+                12,
+            );
+        }
+
+        it('works with poll', async () => {
+            const indices: number[] = [];
+            const promise = poll(({ iteration }) => iteration === 3, composedTime(indices));
+
+            await clock.runAllAsync();
+            await promise;
+
+            expect(indices).to.deep.equal([2, 3]);
+            expect(clock.now).to.equal(22);
+        });
+
+        it('works with until', async () => {
+            const indices: number[] = [];
+            const promise = until(
+                ({ iteration }) => iteration,
+                (value) => value === 3,
+                composedTime(indices),
+            );
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal(3);
+            expect(indices).to.deep.equal([2, 3]);
+            expect(clock.now).to.equal(22);
+        });
+
+        it('works with times', async () => {
+            const indices: number[] = [];
+            const operation = sinon.spy();
+            const promise = times(operation, 3, composedTime(indices));
+
+            await clock.runAllAsync();
+            await promise;
+
+            expect(operation.callCount).to.equal(3);
+            expect(indices).to.deep.equal([2, 3]);
+            expect(clock.now).to.equal(22);
+        });
+
+        it('works with retry', async () => {
+            const indices: number[] = [];
+            const promise = retry(
+                ({ attempt }) => {
+                    if (attempt < 3) throw new Error('retry');
+
+                    return 'done';
+                },
+                3,
+                composedTime(indices),
+            );
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal('done');
+            expect(indices).to.deep.equal([2, 3]);
+            expect(clock.now).to.equal(22);
+        });
+
+        it('propagates invalid calculated delays through every finite helper', async () => {
+            const invalidDuration = (): number => Number.NaN;
+            const promises = [
+                poll(() => false, invalidDuration),
+                until(
+                    () => 'pending',
+                    () => false,
+                    invalidDuration,
+                ),
+                times(() => undefined, 2, invalidDuration),
+                retry(
+                    () => {
+                        throw new Error('retry');
+                    },
+                    2,
+                    invalidDuration,
+                ),
+            ];
+            const rejections = promises.map(rejectionOf);
+
+            await clock.tickAsync(0);
+
+            for (const rejection of rejections) {
+                expect(await rejection).to.be.instanceOf(RangeError);
+            }
+
+            expect(clock.countTimers()).to.equal(0);
         });
     });
 
     describe('pipeline', () => {
-        context('When sync', () => {
-            it('should pass data through', async () => {
-                const out = await pipeline([() => 1, (i) => i * 2, (i) => i * 3, (i) => i * 4], 100);
+        it('preserves sequential data flow', async () => {
+            const promise = pipeline([() => 1, (value) => value * 2, (value) => value * 3], 10);
 
-                expect(out).to.eq(24);
-            });
-        });
+            await clock.runAllAsync();
 
-        context('When async', () => {
-            it('should pass data through', async () => {
-                const delay: any = (value: number, delay = 100) => {
-                    return new Promise((resolve) => {
-                        setTimeout(() => resolve(value), delay);
-                    });
-                };
-                const out = await pipeline(
-                    [() => delay(1), (i) => delay(i * 2), (i) => delay(i * 3), (i) => delay(i * 4)],
-                    100,
-                );
-
-                expect(out).to.eq(24);
-            });
+            expect(await promise).to.equal(6);
         });
     });
 });
