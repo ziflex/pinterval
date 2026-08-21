@@ -1,5 +1,6 @@
 import { createCancellationScope, getAbortReason } from './cancellation';
-import { Duration, Interval, IntervalContext, StartMode } from './interval';
+import type { Duration } from './duration';
+import { Interval, IntervalContext, StartMode } from './interval';
 
 /** Shared scheduling and lifecycle options for finite helpers. */
 export interface ExecutionOptions {
@@ -214,6 +215,7 @@ function runFiniteInterval<T>(options: NormalizedExecutionOptions, func: FiniteI
             }
 
             interval.start();
+            void interval.done.catch(fail);
         } catch (err) {
             fail(err);
         }

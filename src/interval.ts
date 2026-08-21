@@ -1,11 +1,12 @@
 import { getAbortReason } from './cancellation';
+import type { Duration } from './duration';
+import { assertDurationSource, resolveDuration, validateTimerDuration } from './duration-internal';
 import { AbortError } from './errors';
 
 const ERR_START = 'Interval is already running';
 const ERR_MISSED_PARAMS = 'Parameters are required';
 const ERR_FUNC_TYPE = '"func" must be a function';
 const ERR_ONERROR_TYPE = '"onError" must be a function';
-const ERR_TIME_TYPE = '"time" must be either a number or a function';
 
 export type IntervalState = 'idle' | 'running' | 'paused' | 'stopped';
 
@@ -24,8 +25,6 @@ export type IntervalFunction = (context: IntervalContext) => boolean | void;
 export type IntervalFunctionAsync = (context: IntervalContext) => Promise<boolean | void>;
 export type ErrorHandler = (err: Error) => boolean | void;
 export type ErrorHandlerAsync = (err: Error) => Promise<boolean | void>;
-export type DurationFunction = (counter: number) => number;
-export type Duration = DurationFunction | number;
 export type StartMode = 'immediate' | 'delayed';
 
 interface PendingExecution {
@@ -121,8 +120,10 @@ export class Interval {
             throw new Error(ERR_FUNC_TYPE);
         }
 
-        if (typeof params.time !== 'number' && typeof params.time !== 'function') {
-            throw new Error(ERR_TIME_TYPE);
+        assertDurationSource(params.time, 'time');
+
+        if (typeof params.time === 'number') {
+            validateTimerDuration(params.time, 'time');
         }
 
         if (params.onError != null && typeof params.onError !== 'function') {
@@ -345,7 +346,7 @@ export class Interval {
             let delay = 0;
 
             if (this.__startMode === 'delayed' || iteration > 1) {
-                delay = typeof this.__duration !== 'function' ? this.__duration : this.__duration(iteration);
+                delay = resolveDuration(this.__duration, iteration);
             }
 
             pending = { iteration, delay };

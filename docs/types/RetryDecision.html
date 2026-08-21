@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>IntervalState | pinterval</title><meta name="description" content="Documentation for pinterval"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>RetryDecision | pinterval</title><meta name="description" content="Documentation for pinterval"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container"><a href="../index.html" class="title">pinterval</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
@@ -8,11 +8,13 @@
 <div class="col-content">
 <div class="tsd-page-title">
 <ul class="tsd-breadcrumb" aria-label="Breadcrumb">
-<li><a href="" aria-current="page">IntervalState</a></li></ul>
-<h1>Type Alias IntervalState</h1></div>
-<div class="tsd-signature"><span class="tsd-kind-type-alias">IntervalState</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;idle&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;running&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;paused&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;stopped&quot;</span></div><aside class="tsd-sources">
+<li><a href="" aria-current="page">RetryDecision</a></li></ul>
+<h1>Type Alias RetryDecision</h1></div>
+<div class="tsd-signature"><span class="tsd-kind-type-alias">RetryDecision</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">void</span></div>
+<div class="tsd-comment tsd-typography"><p>Controls whether a failed operation should be retried. <code>false</code> stops; <code>true</code> or <code>void</code> continues.</p>
+</div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/61c4779ffeaaa28f6cad474c76ca50805b264e65/src/interval.ts#L11">src/interval.ts:11</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/ziflex/pinterval/blob/811a617e550e215848f6dbcc17f2a14d7368eea9/src/helpers.ts#L42">src/helpers.ts:42</a></li></ul></aside></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon, { SinonFakeTimers } from 'sinon';
 
-import { pipeline, poll, retry, RetryContext, times, until } from '../../src';
+import { duration, pipeline, poll, retry, RetryContext, times, until } from '../../src';
 
 function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
     return promise.then(
@@ -453,6 +453,121 @@ describe('Helpers', () => {
                 expect(error).to.be.instanceOf(RangeError);
                 expect((error as RangeError).message).to.equal('"attempts" must be a positive integer');
                 expect(operation.callCount).to.equal(0);
+            }
+
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('rejects when a dynamic duration produces an invalid timer value', async () => {
+            const operation = sinon.stub().throws(new Error('retry'));
+            const promise = retry(operation, 3, () => Number.NaN);
+            const rejection = rejectionOf(promise);
+
+            await clock.tickAsync(0);
+
+            expect(await rejection).to.be.instanceOf(RangeError);
+            expect(operation.callCount).to.equal(1);
+            expect(clock.countTimers()).to.equal(0);
+        });
+    });
+
+    describe('composable durations', () => {
+        function composedTime(indices: number[]) {
+            return duration.cap(
+                duration.floor(
+                    duration.map(duration.linear(5, 5), (value, counter) => {
+                        indices.push(counter);
+
+                        return value;
+                    }),
+                    10,
+                ),
+                12,
+            );
+        }
+
+        it('works with poll', async () => {
+            const indices: number[] = [];
+            const promise = poll(({ iteration }) => iteration === 3, composedTime(indices));
+
+            await clock.runAllAsync();
+            await promise;
+
+            expect(indices).to.deep.equal([2, 3]);
+            expect(clock.now).to.equal(22);
+        });
+
+        it('works with until', async () => {
+            const indices: number[] = [];
+            const promise = until(
+                ({ iteration }) => iteration,
+                (value) => value === 3,
+                composedTime(indices),
+            );
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal(3);
+            expect(indices).to.deep.equal([2, 3]);
+            expect(clock.now).to.equal(22);
+        });
+
+        it('works with times', async () => {
+            const indices: number[] = [];
+            const operation = sinon.spy();
+            const promise = times(operation, 3, composedTime(indices));
+
+            await clock.runAllAsync();
+            await promise;
+
+            expect(operation.callCount).to.equal(3);
+            expect(indices).to.deep.equal([2, 3]);
+            expect(clock.now).to.equal(22);
+        });
+
+        it('works with retry', async () => {
+            const indices: number[] = [];
+            const promise = retry(
+                ({ attempt }) => {
+                    if (attempt < 3) throw new Error('retry');
+
+                    return 'done';
+                },
+                3,
+                composedTime(indices),
+            );
+
+            await clock.runAllAsync();
+
+            expect(await promise).to.equal('done');
+            expect(indices).to.deep.equal([2, 3]);
+            expect(clock.now).to.equal(22);
+        });
+
+        it('propagates invalid calculated delays through every finite helper', async () => {
+            const invalidDuration = (): number => Number.NaN;
+            const promises = [
+                poll(() => false, invalidDuration),
+                until(
+                    () => 'pending',
+                    () => false,
+                    invalidDuration,
+                ),
+                times(() => undefined, 2, invalidDuration),
+                retry(
+                    () => {
+                        throw new Error('retry');
+                    },
+                    2,
+                    invalidDuration,
+                ),
+            ];
+            const rejections = promises.map(rejectionOf);
+
+            await clock.tickAsync(0);
+
+            for (const rejection of rejections) {
+                expect(await rejection).to.be.instanceOf(RangeError);
             }
 
             expect(clock.countTimers()).to.equal(0);

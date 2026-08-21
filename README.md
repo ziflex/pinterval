@@ -38,6 +38,11 @@ A powerful and flexible interval management library that goes beyond JavaScript'
   - [jittered](#jittered)
   - [decorrelatedJitter](#decorrelatedjitter)
   - [steps](#steps)
+  - [Transformations](#transformations)
+    - [cap](#cap)
+    - [floor](#floor)
+    - [jitter](#jitter)
+    - [map](#map)
 - [Real-World Examples](#real-world-examples)
 - [TypeScript Support](#typescript-support)
 - [Comparison with Native setInterval](#comparison-with-native-setinterval)
@@ -815,15 +820,24 @@ function sleep(time: number, options?: { signal?: AbortSignal }): Promise<void>
 
 ## Duration Functions
 
-Starting with v3.7.0, pinterval includes a collection of duration calculation functions for dynamic interval scheduling. These are perfect for implementing sophisticated retry and backoff strategies.
-
-All duration functions are available under the `duration` namespace and follow this signature:
+Durations use one common model: either a constant number of milliseconds or a function of the scheduling counter.
 
 ```typescript
 type DurationFunction = (counter: number) => number;
+type Duration = number | DurationFunction;
 ```
 
-The `counter` parameter starts at 1 for the first execution and increments with each tick.
+All built-in functions are available under the `duration` namespace:
+
+- **Primitive strategies:** `constant`, `linear`, `exponential`, `fibonacci`, and `steps`
+- **Transformations:** `cap`, `floor`, `jitter`, and `map`
+- **Randomized strategies:** the `jittered` convenience strategy and stateful `decorrelatedJitter`
+
+Transformations accept either form of `Duration`, so constants, built-ins, and custom functions compose in the same way. They evaluate from the inside out, and order remains observable.
+
+The counter is one-based and retains the existing scheduling semantics. A delayed interval resolves counter `1` before its first execution. An immediate interval executes first without a delay, so its first resolved duration receives counter `2`.
+
+Resolved delays may be fractional, but must be finite and between `0` and `2_147_483_647` milliseconds. Invalid strategy results fail explicitly with an error instead of relying on host-specific `setTimeout` coercion.
 
 ### constant
 
@@ -968,6 +982,8 @@ function fibonacci(initial: number): DurationFunction
 ### jittered
 
 Adds randomness to exponential backoff to prevent the "thundering herd" problem where multiple clients retry simultaneously.
+
+This convenience strategy is equivalent to applying `jitter` to `exponential`. Its optional maximum caps the exponential value before jitter is applied, so the final jittered value can exceed that maximum by the selected factor. Use an outer `duration.cap` when the final value must have an absolute ceiling.
 
 ```typescript
 import { retry, duration } from 'pinterval';
@@ -1128,6 +1144,108 @@ const result = await retry(
         { threshold: 10, duration: 5000 }  // Attempts 10+: very slow (5s)
     ])
 );
+```
+
+### Transformations
+
+Transformations resolve their source and return another `DurationFunction`, so they can be nested without special support from `Interval`, `retry`, `poll`, `until`, or `times`.
+
+#### cap
+
+Limits a constant or calculated duration to a maximum value:
+
+```typescript
+const capped = duration.cap(
+    duration.exponential(100),
+    30_000
+);
+
+capped(1);  // 100
+capped(20); // 30_000
+```
+
+```typescript
+function cap(source: Duration, maximum: number): DurationFunction
+```
+
+#### floor
+
+Raises a constant or calculated duration to a minimum value:
+
+```typescript
+const floored = duration.floor(
+    duration.linear(100, 100),
+    500
+);
+
+floored(1); // 500
+floored(6); // 600
+```
+
+```typescript
+function floor(source: Duration, minimum: number): DurationFunction
+```
+
+#### jitter
+
+Applies symmetric randomness to any duration. A factor of `0.2` means a variation from -20% through +20%; factors must be between `0` and `1`.
+
+```typescript
+const jittered = duration.jitter(
+    duration.fibonacci(100),
+    0.2
+);
+```
+
+```typescript
+function jitter(source: Duration, factor: number): DurationFunction
+```
+
+#### map
+
+Transforms a resolved value and receives the unchanged scheduling counter as its second argument:
+
+```typescript
+const rounded = duration.map(
+    duration.exponential(100),
+    (value, counter) => {
+        console.log(`Resolving duration ${counter}`);
+        return Math.round(value / 100) * 100;
+    }
+);
+```
+
+```typescript
+function map(
+    source: Duration,
+    transform: (value: number, counter: number) => number
+): DurationFunction
+```
+
+#### Composition order
+
+Combinators evaluate from the inside out. Capping after jitter guarantees an absolute maximum; jittering after a cap may exceed that cap:
+
+```typescript
+duration.cap(duration.jitter(source, 0.2), 1000);
+duration.jitter(duration.cap(source, 1000), 0.2);
+```
+
+A realistic retry strategy can combine the primitives and transformations directly:
+
+```typescript
+import { duration, retry } from 'pinterval';
+
+const result = await retry(loadData, {
+    attempts: 10,
+    time: duration.cap(
+        duration.jitter(
+            duration.exponential(100),
+            0.2
+        ),
+        5000
+    )
+});
 ```
 
 ## Real-World Examples

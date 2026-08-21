@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 
+import { MAX_TIMER_DURATION } from '../../src/duration-internal';
 import { Interval } from '../../src/index';
 
 async function sleep(time: number): Promise<void> {
@@ -32,6 +33,21 @@ describe('Interval', () => {
                 expect(() => {
                     return new Interval({ func: sinon.spy(), time: {} as any });
                 }).to.throw(Error);
+            });
+
+            it('should reject invalid constant timer values', () => {
+                for (const time of [
+                    -1,
+                    Number.NaN,
+                    Number.POSITIVE_INFINITY,
+                    Number.NEGATIVE_INFINITY,
+                    MAX_TIMER_DURATION + 1,
+                ]) {
+                    expect(() => new Interval({ func: sinon.spy(), time })).to.throw(RangeError);
+                }
+
+                expect(() => new Interval({ func: sinon.spy(), time: 0.5 })).not.to.throw();
+                expect(() => new Interval({ func: sinon.spy(), time: MAX_TIMER_DURATION })).not.to.throw();
             });
         });
     });

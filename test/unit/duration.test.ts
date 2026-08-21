@@ -1,198 +1,269 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 
 import { duration } from '../../src';
+import { MAX_TIMER_DURATION, resolveDuration } from '../../src/duration-internal';
 
 describe('Duration functions', () => {
-    describe('constant', () => {
-        it('should return the same value for all counters', () => {
-            const fn = duration.constant(1000);
+    afterEach(() => {
+        sinon.restore();
+    });
 
-            expect(fn(1)).to.equal(1000);
-            expect(fn(5)).to.equal(1000);
-            expect(fn(100)).to.equal(1000);
+    describe('primitives', () => {
+        it('returns a constant value for every counter', () => {
+            const strategy = duration.constant(1000);
+
+            expect(strategy(1)).to.equal(1000);
+            expect(strategy(5)).to.equal(1000);
+            expect(strategy(100)).to.equal(1000);
+        });
+
+        it('increases linearly and preserves zero and negative increments', () => {
+            const increasing = duration.linear(100, 50);
+            const constant = duration.linear(500, 0);
+            const decreasing = duration.linear(1000, -100);
+
+            expect(increasing(1)).to.equal(100);
+            expect(increasing(2)).to.equal(150);
+            expect(increasing(5)).to.equal(300);
+            expect(constant(11)).to.equal(500);
+            expect(decreasing(6)).to.equal(500);
+            expect(() => decreasing(12)).to.throw(RangeError);
+        });
+
+        it('doubles exponentially and honors an optional maximum, including zero', () => {
+            const uncapped = duration.exponential(100);
+            const capped = duration.exponential(100, 500);
+            const zeroCapped = duration.exponential(100, 0);
+
+            expect([1, 2, 3, 4].map(uncapped)).to.deep.equal([100, 200, 400, 800]);
+            expect([1, 2, 3, 4, 5].map(capped)).to.deep.equal([100, 200, 400, 500, 500]);
+            expect(zeroCapped(1)).to.equal(0);
+        });
+
+        it('follows the existing Fibonacci counter semantics', () => {
+            const strategy = duration.fibonacci(100);
+
+            expect([0, 1, 2, 3, 4, 5, 6].map(strategy)).to.deep.equal([100, 100, 200, 300, 500, 800, 1300]);
+        });
+
+        it('selects steps without mutating the caller array', () => {
+            const definitions = [
+                { threshold: 10, duration: 1000 },
+                { threshold: 0, duration: 100 },
+                { threshold: 5, duration: 500 },
+            ];
+            const strategy = duration.steps(definitions);
+
+            expect(strategy(3)).to.equal(100);
+            expect(strategy(7)).to.equal(500);
+            expect(strategy(15)).to.equal(1000);
+            expect(definitions.map(({ threshold }) => threshold)).to.deep.equal([10, 0, 5]);
+        });
+
+        it('uses the first declared duration below every step threshold', () => {
+            const strategy = duration.steps([
+                { threshold: 5, duration: 500 },
+                { threshold: 10, duration: 1000 },
+            ]);
+
+            expect(strategy(0)).to.equal(500);
+            expect(strategy(3)).to.equal(500);
         });
     });
 
-    describe('linear', () => {
-        it('should increase duration linearly', () => {
-            const fn = duration.linear(100, 50);
-
-            expect(fn(1)).to.equal(100); // 100 + 0*50
-            expect(fn(2)).to.equal(150); // 100 + 1*50
-            expect(fn(5)).to.equal(300); // 100 + 4*50
+    describe('cap', () => {
+        it('caps values below, equal to, and above the maximum', () => {
+            expect(duration.cap(499, 500)(1)).to.equal(499);
+            expect(duration.cap(500, 500)(1)).to.equal(500);
+            expect(duration.cap(501, 500)(1)).to.equal(500);
         });
 
-        it('should handle zero increment', () => {
-            const fn = duration.linear(500, 0);
+        it('resolves dynamic sources with the unchanged counter', () => {
+            const source = sinon.spy((counter: number) => counter * 250);
+            const strategy = duration.cap(source, 500);
 
-            expect(fn(1)).to.equal(500);
-            expect(fn(11)).to.equal(500);
+            expect(strategy(1)).to.equal(250);
+            expect(strategy(3)).to.equal(500);
+            expect(source.args.map(([counter]) => counter)).to.deep.equal([1, 3]);
         });
 
-        it('should handle negative increment', () => {
-            const fn = duration.linear(1000, -100);
+        it('makes an oversized finite result timer-safe', () => {
+            const strategy = duration.cap(() => MAX_TIMER_DURATION + 1000, 30_000);
 
-            expect(fn(1)).to.equal(1000);
-            expect(fn(6)).to.equal(500);
-        });
-    });
-
-    describe('exponential', () => {
-        it('should double duration each iteration', () => {
-            const fn = duration.exponential(100);
-
-            expect(fn(1)).to.equal(100); // 100 * 2^0
-            expect(fn(2)).to.equal(200); // 100 * 2^1
-            expect(fn(3)).to.equal(400); // 100 * 2^2
-            expect(fn(4)).to.equal(800); // 100 * 2^3
-        });
-
-        it('should cap at maximum value when provided', () => {
-            const fn = duration.exponential(100, 500);
-
-            expect(fn(1)).to.equal(100);
-            expect(fn(2)).to.equal(200);
-            expect(fn(3)).to.equal(400);
-            expect(fn(4)).to.equal(500); // capped
-            expect(fn(5)).to.equal(500); // capped
-        });
-
-        it('should grow unbounded without max', () => {
-            const fn = duration.exponential(10);
-
-            expect(fn(11)).to.equal(10240); // 10 * 2^10
+            expect(strategy(30)).to.equal(30_000);
+            expect(resolveDuration(strategy, 30)).to.equal(30_000);
         });
     });
 
-    describe('fibonacci', () => {
-        it('should follow Fibonacci sequence', () => {
-            const fn = duration.fibonacci(100);
-
-            expect(fn(1)).to.equal(100); // F(1)
-            expect(fn(2)).to.equal(200); // F(1)
-            expect(fn(3)).to.equal(300); // F(2) = F(0) + F(1)
-            expect(fn(4)).to.equal(500); // F(3) = F(1) + F(2)
-            expect(fn(5)).to.equal(800);
-            expect(fn(6)).to.equal(1300);
+    describe('floor', () => {
+        it('floors values below, equal to, and above the minimum', () => {
+            expect(duration.floor(499, 500)(1)).to.equal(500);
+            expect(duration.floor(500, 500)(1)).to.equal(500);
+            expect(duration.floor(501, 500)(1)).to.equal(501);
         });
 
-        it('should work with different initial values', () => {
-            const fn = duration.fibonacci(50);
+        it('composes with a dynamic capped strategy', () => {
+            const strategy = duration.floor(duration.cap(duration.linear(250, 500), 1000), 500);
 
-            expect(fn(0)).to.equal(50);
-            expect(fn(1)).to.equal(50);
-            expect(fn(2)).to.equal(100);
-            expect(fn(3)).to.equal(150);
+            expect([1, 2, 3, 4].map(strategy)).to.deep.equal([500, 750, 1000, 1000]);
         });
     });
 
-    describe('jittered', () => {
-        it('should add randomness to exponential backoff', () => {
-            const fn = duration.jittered(100, 1000, 0.1);
-            const results = new Set();
+    describe('jitter', () => {
+        it('returns the source unchanged when the factor is zero', () => {
+            sinon.stub(Math, 'random').returns(0);
 
-            // Run multiple times to check for variation
-            for (let i = 0; i < 10; i++) {
-                results.add(fn(2));
+            expect(duration.jitter(1000, 0)(1)).to.equal(1000);
+        });
+
+        it('produces the exact lower, midpoint, and upper bounds', () => {
+            const random = sinon.stub(Math, 'random');
+            random.onCall(0).returns(0);
+            random.onCall(1).returns(0.5);
+            random.onCall(2).returns(1);
+            const strategy = duration.jitter(1000, 0.2);
+
+            expect(strategy(1)).to.equal(800);
+            expect(strategy(1)).to.equal(1000);
+            expect(strategy(1)).to.equal(1200);
+        });
+
+        it('supports the full factor boundary and an exponential source', () => {
+            sinon.stub(Math, 'random').returns(1);
+
+            expect(duration.jitter(1000, 1)(1)).to.equal(2000);
+            expect(duration.jitter(duration.exponential(100), 0.25)(3)).to.equal(500);
+        });
+
+        it('preserves observable composition order', () => {
+            sinon.stub(Math, 'random').returns(1);
+            const cappedAfterJitter = duration.cap(duration.jitter(1000, 0.2), 1000);
+            const jitteredAfterCap = duration.jitter(duration.cap(1000, 1000), 0.2);
+
+            expect(cappedAfterJitter(1)).to.equal(1000);
+            expect(jitteredAfterCap(1)).to.equal(1200);
+        });
+
+        it('keeps jittered as cap-before-jitter convenience with documented spread', () => {
+            sinon.stub(Math, 'random').returns(1);
+            const strategy = duration.jittered(100, 500, 0.2);
+
+            expect(strategy(10)).to.equal(600);
+        });
+    });
+
+    describe('map', () => {
+        it('transforms constants and strategies', () => {
+            const round = (value: number): number => Math.round(value / 100) * 100;
+
+            expect(duration.map(149, round)(1)).to.equal(100);
+            expect(duration.map(duration.linear(125, 50), round)(2)).to.equal(200);
+        });
+
+        it('passes the unchanged counter to the source and transform', () => {
+            const source = sinon.spy((counter: number) => counter * 10);
+            const transform = sinon.spy((value: number, counter: number) => value + counter);
+            const strategy = duration.map(source, transform);
+
+            expect(strategy(7)).to.equal(77);
+            expect(source.calledOnceWithExactly(7)).to.be.true;
+            expect(transform.calledOnceWithExactly(70, 7)).to.be.true;
+        });
+
+        it('nests with other transformations', () => {
+            const strategy = duration.floor(
+                duration.cap(
+                    duration.map(duration.exponential(100), (value) => value + 25),
+                    350,
+                ),
+                150,
+            );
+
+            expect([1, 2, 3].map(strategy)).to.deep.equal([150, 225, 350]);
+        });
+
+        it('rejects invalid transformed values', () => {
+            for (const value of [-1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+                const strategy = duration.map(100, () => value);
+
+                expect(() => strategy(1)).to.throw(RangeError);
             }
 
-            // Should have different values due to jitter
-            expect(results.size).to.be.greaterThan(1);
-        });
-
-        it('should stay within jitter bounds', () => {
-            const fn = duration.jittered(100, undefined, 0.1);
-            const base = 400; // 100 * 2^2
-            const maxJitter = base * 0.1;
-
-            for (let i = 0; i < 20; i++) {
-                const result = fn(3);
-                expect(result).to.be.at.least(base - maxJitter);
-                expect(result).to.be.at.most(base + maxJitter);
-            }
-        });
-
-        it('should respect max cap', () => {
-            const fn = duration.jittered(100, 500, 0.2);
-
-            for (let i = 0; i < 10; i++) {
-                const result = fn(10); // Would be 102400 without cap
-                expect(result).to.be.at.most(600); // 500 + 20% jitter
-            }
+            const wrongType = duration.map(100, () => '100' as unknown as number);
+            expect(() => wrongType(1)).to.throw(TypeError);
         });
     });
 
     describe('decorrelatedJitter', () => {
-        it('should produce values up to 3x previous', () => {
-            const fn = duration.decorrelatedJitter(100, 10000);
+        it('updates its isolated state from deterministic random values', () => {
+            const random = sinon.stub(Math, 'random');
+            random.onCall(0).returns(0.5);
+            random.onCall(1).returns(0.25);
+            const strategy = duration.decorrelatedJitter(100, 10_000);
 
-            let previous = 100;
-            for (let i = 0; i < 10; i++) {
-                const current = fn(i);
-                expect(current).to.be.at.most(previous * 3);
-                expect(current).to.be.at.least(0);
-                previous = current;
-            }
+            expect(strategy(1)).to.equal(150);
+            expect(strategy(2)).to.equal(112.5);
         });
 
-        it('should respect max cap', () => {
-            const fn = duration.decorrelatedJitter(100, 500);
+        it('retains its maximum cap', () => {
+            sinon.stub(Math, 'random').returns(1);
+            const strategy = duration.decorrelatedJitter(100, 200);
 
-            for (let i = 0; i < 20; i++) {
-                expect(fn(i)).to.be.at.most(500);
-            }
-        });
-
-        it('should produce different values on each call', () => {
-            const fn = duration.decorrelatedJitter(100, 10000);
-            const results = [];
-
-            for (let i = 0; i < 10; i++) {
-                results.push(fn(i));
-            }
-
-            // Should have variation (not all the same)
-            const unique = new Set(results);
-            expect(unique.size).to.be.greaterThan(1);
+            expect(strategy(1)).to.equal(200);
+            expect(strategy(2)).to.equal(200);
         });
     });
 
-    describe('steps', () => {
-        it('should return duration based on threshold', () => {
-            const fn = duration.steps([
-                { threshold: 0, duration: 100 },
-                { threshold: 5, duration: 500 },
-                { threshold: 10, duration: 1000 },
-            ]);
-
-            expect(fn(0)).to.equal(100);
-            expect(fn(4)).to.equal(100);
-            expect(fn(5)).to.equal(500);
-            expect(fn(9)).to.equal(500);
-            expect(fn(10)).to.equal(1000);
-            expect(fn(20)).to.equal(1000);
+    describe('validation', () => {
+        it('accepts zero, fractional values, and the maximum timer duration', () => {
+            expect(resolveDuration(0, 1)).to.equal(0);
+            expect(resolveDuration(0.5, 1)).to.equal(0.5);
+            expect(resolveDuration(MAX_TIMER_DURATION, 1)).to.equal(MAX_TIMER_DURATION);
         });
 
-        it('should handle unsorted thresholds', () => {
-            const fn = duration.steps([
-                { threshold: 10, duration: 1000 },
-                { threshold: 0, duration: 100 },
-                { threshold: 5, duration: 500 },
-            ]);
+        it('rejects unusable final timer values', () => {
+            for (const value of [
+                -1,
+                Number.NaN,
+                Number.POSITIVE_INFINITY,
+                Number.NEGATIVE_INFINITY,
+                MAX_TIMER_DURATION + 1,
+            ]) {
+                expect(() => resolveDuration(value, 1)).to.throw(RangeError);
+            }
 
-            expect(fn(3)).to.equal(100);
-            expect(fn(7)).to.equal(500);
-            expect(fn(15)).to.equal(1000);
+            expect(() => resolveDuration((() => '100') as any, 1)).to.throw(TypeError);
         });
 
-        it('should use first duration for counter below all thresholds', () => {
-            const fn = duration.steps([
-                { threshold: 5, duration: 500 },
-                { threshold: 10, duration: 1000 },
-            ]);
+        it('validates primitive arguments eagerly', () => {
+            for (const value of [-1, Number.NaN, Number.POSITIVE_INFINITY, MAX_TIMER_DURATION + 1]) {
+                expect(() => duration.constant(value)).to.throw(RangeError);
+                expect(() => duration.exponential(value)).to.throw(RangeError);
+                expect(() => duration.fibonacci(value)).to.throw(RangeError);
+            }
 
-            expect(fn(0)).to.equal(500);
-            expect(fn(3)).to.equal(500);
+            expect(() => duration.linear(100, Number.NaN)).to.throw(RangeError);
+            expect(() => duration.steps([])).to.throw(RangeError);
+            expect(() => duration.steps([{ threshold: Number.NaN, duration: 100 }])).to.throw(RangeError);
+            expect(() => duration.steps([{ threshold: 0, duration: -1 }])).to.throw(RangeError);
+        });
+
+        it('validates combinator arguments eagerly', () => {
+            expect(() => duration.cap({} as any, 100)).to.throw(TypeError);
+            expect(() => duration.floor(100, -1)).to.throw(RangeError);
+            expect(() => duration.jitter(100, -0.1)).to.throw(RangeError);
+            expect(() => duration.jitter(100, 1.1)).to.throw(RangeError);
+            expect(() => duration.jitter(100, Number.NaN)).to.throw(RangeError);
+            expect(() => duration.map(100, null as any)).to.throw(TypeError);
+        });
+
+        it('allows an outer cap to repair oversized nested calculations', () => {
+            sinon.stub(Math, 'random').returns(1);
+            const oversized = duration.map(duration.jitter(MAX_TIMER_DURATION, 1), (value) => value * 2);
+
+            expect(() => resolveDuration(oversized, 1)).to.throw(RangeError);
+            expect(resolveDuration(duration.cap(oversized, 1000), 1)).to.equal(1000);
         });
     });
 });

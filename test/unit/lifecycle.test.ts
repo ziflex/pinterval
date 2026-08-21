@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon, { SinonFakeTimers } from 'sinon';
 
-import { AbortError, Interval, IntervalContext } from '../../src';
+import { AbortError, duration, Interval, IntervalContext } from '../../src';
 
 function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
     return promise.then(
@@ -105,6 +105,50 @@ describe('Interval lifecycle', () => {
 
             expect(interval.state).to.equal('stopped');
             expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('rejects a run when a dynamic duration produces an invalid timer value', async () => {
+            const interval = new Interval({
+                func: sinon.spy(),
+                time: () => Number.POSITIVE_INFINITY,
+                start: 'immediate',
+            });
+            interval.start();
+            const done = interval.done;
+
+            await clock.tickAsync(0);
+
+            expect(await rejectionOf(done)).to.be.instanceOf(RangeError);
+            expect(interval.state).to.equal('stopped');
+            expect(clock.countTimers()).to.equal(0);
+        });
+
+        it('runs with nested duration transformations and preserves duration indices', async () => {
+            const indices: number[] = [];
+            const strategy = duration.cap(
+                duration.floor(
+                    duration.map(duration.linear(5, 5), (value, counter) => {
+                        indices.push(counter);
+
+                        return value;
+                    }),
+                    10,
+                ),
+                12,
+            );
+            const interval = new Interval({
+                func: ({ iteration }) => iteration < 3,
+                time: strategy,
+                start: 'immediate',
+            });
+            interval.start();
+
+            await clock.runAllAsync();
+            await interval.done;
+
+            expect(indices).to.deep.equal([2, 3]);
+            expect(clock.now).to.equal(22);
+            expect(interval.state).to.equal('stopped');
         });
 
         it('creates independent completion promises and signals for restarted runs', async () => {
